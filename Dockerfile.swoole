@@ -1,0 +1,83 @@
+FROM php:8.3-cli
+
+# Arguments defined in docker-compose.yml
+ARG user
+ARG uid
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    git \
+    curl \
+    libpng-dev \
+    libonig-dev \
+    libxml2-dev \
+    libzip-dev \
+    libssl-dev \
+    supervisor \
+    zip \
+    unzip \
+    openssl \
+    libssl-dev \
+    procps \
+    libbrotli-dev \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install PHP extensions
+RUN docker-php-ext-install \
+    pdo_mysql \
+    mbstring \
+    exif \
+    pcntl \
+    bcmath \
+    gd \
+    zip \
+    sockets
+
+# Configure and install Swoole
+RUN pecl install swoole && \
+    docker-php-ext-enable swoole
+
+# Install Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+# Create system user
+RUN useradd -G www-data,root -u $uid -d /home/$user $user
+RUN mkdir -p /home/$user/.composer && \
+    chown -R $user:$user /home/$user
+
+# Set working directory
+WORKDIR /var/www
+
+# Copy application files
+COPY --chown=$user:$user . .
+
+# Switch to root for dependencies installation
+USER root
+
+# Install dependencies and Octane
+RUN composer install --no-interaction --no-scripts
+RUN composer require laravel/octane --with-all-dependencies
+
+# Setup reload script (only once)
+# RUN mkdir -p /usr/local/bin
+# COPY docker-compose/scripts/reload.sh /usr/local/bin/
+# RUN chmod +x /usr/local/bin/reload.sh
+
+# Copy supervisor configuration
+COPY docker-compose/php/supervisord/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
+# Set proper permissions
+RUN chown -R $user:$user /var/www
+
+# Switch back to application user
+USER $user
+
+EXPOSE 8000
+
+# Add healthcheck
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+# Start Octane
+CMD ["php", "artisan", "octane:start", "--server=swoole", "--host=0.0.0.0", "--port=8000", "--workers=4", "--max-requests=500", "--task-workers=4"]

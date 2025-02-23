@@ -1,0 +1,122 @@
+services:
+    app:
+        build:
+            args:
+                user: ${USER}
+                uid: 1000
+            context: ./
+            dockerfile: Dockerfile.swoole
+        container_name: yaumi_app
+        working_dir: /var/www/
+        restart: unless-stopped
+        depends_on:
+            mysql:
+                condition: service_started
+        ports:
+            - "8000:8000"
+        environment:
+            - COMPOSER_MEMORY_LIMIT=-1
+        volumes:
+            - ./:/var/www
+        networks:
+            - ryuuunet
+        healthcheck:
+            test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+            interval: 30s
+            timeout: 10s
+            retries: 3
+
+    nginx:
+        image: nginx:alpine
+        container_name: yaumi_nginx
+        restart: unless-stopped
+        depends_on:
+            app:
+                condition: service_started
+        ports:
+            - "8182:80"
+        volumes:
+            - ./:/var/www
+            - ./docker-compose/nginx:/etc/nginx/conf.d
+        networks:
+            - ryuuunet
+
+    meilisearch:
+        image: getmeili/meilisearch:v1.5
+        container_name: yaumi_meilisearch
+        environment:
+            - MEILI_MASTER_KEY=${MEILISEARCH_KEY:-masterKey}
+            - MEILI_NO_ANALYTICS=true
+            - MEILI_ENV=development
+        ports:
+            - "7700:7700"
+        volumes:
+            - meili_data:/meili_data
+        networks:
+            - ryuuunet
+        healthcheck:
+            test: ["CMD", "wget", "--no-verbose", "--spider", "http://localhost:7700/health"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+
+    mysql:
+        image: mysql:8.0
+        container_name: yaumi_mysql
+        restart: unless-stopped
+        ports:
+            - "3307:3306"
+        environment:
+            MYSQL_DATABASE: ${DB_DATABASE}
+            MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+            MYSQL_PASSWORD: ${DB_PASSWORD}
+            MYSQL_USER: ${DB_USERNAME}
+        volumes:
+            - dbdata:/var/lib/mysql/
+            - ./docker-compose/mysql/my.conf:/etc/mysql/my.conf
+        networks:
+            - ryuuunet
+        healthcheck:
+            test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+
+    watcher:
+        image: node:22-alpine
+        container_name: yaumi_watcher
+        working_dir: /var/www
+        volumes:
+            - ./:/var/www
+        command: sh -c "apk add --no-cache curl && npm install && node watcher.js"
+        depends_on:
+            - app
+        networks:
+            - ryuuunet
+
+    redis:
+        image: redis:alpine
+        container_name: yaumi_redis
+        ports:
+            - "6379:6379"
+        volumes:
+            - redis_data:/data
+        networks:
+            - ryuuunet
+        healthcheck:
+            test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+            interval: 30s
+            timeout: 10s
+            retries: 3
+
+networks:
+    ryuuunet:
+        driver: bridge
+
+volumes:
+    dbdata:
+        driver: local
+    meili_data:
+        driver: local
+    redis_data:
+        driver: local
