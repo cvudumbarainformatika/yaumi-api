@@ -143,23 +143,50 @@ class ProductController extends Controller
     public function search(Request $request): JsonResponse
     {
         $validated = $request->validate([
+            'q' => 'nullable|string',
             'category_id' => 'nullable|exists:categories,id',
+            'satuan_id' => 'nullable|exists:satuans,id',
+            'status' => 'nullable|in:all,in-stock,low-stock,out-of-stock',  // Add this line
             'per_page' => 'nullable|integer|min:1|max:100',
             'sort_by' => 'nullable|in:name,hargajual,stock,created_at',
             'sort_dir' => 'nullable|in:asc,desc',
         ]);
 
         $perPage = $validated['per_page'] ?? 12;
+        $q = $validated['q'] ?? '';
 
-        $products = Product::search('', function ($meilisearch, $query, $options) use ($validated) {
+        $products = Product::search($q, function ($meilisearch, $query, $options) use ($validated) {
+            $options['filter'] = [];
+
             if (!empty($validated['category_id'])) {
-                $options['filter'] = ["category_id = {$validated['category_id']}"];
+                $options['filter'][] = "category_id = {$validated['category_id']}";
+            }
+
+            if (!empty($validated['satuan_id'])) {
+                $options['filter'][] = "satuan_id = {$validated['satuan_id']}";
+            }
+
+            // Add stock status filter
+            if (!empty($validated['status'])) {
+                switch ($validated['status']) {
+                    case 'in-stock':
+                        $options['filter'][] = "stock > 0";
+                        break;
+                    case 'low-stock':
+                        $options['filter'][] = "is_low_stock = 'true'";
+                        break;
+                    case 'out-of-stock':
+                        $options['filter'][] = "stock = 0";
+                        break;
+                }
             }
 
             if (!empty($validated['sort_by'])) {
                 $direction = $validated['sort_dir'] ?? 'asc';
                 $options['sort'] = ["{$validated['sort_by']}:{$direction}"];
             }
+
+            $options['attributesToHighlight'] = ['name', 'barcode','category.name','category_name'];
 
             return $meilisearch->search($query, $options);
         })
@@ -168,6 +195,8 @@ class ProductController extends Controller
         })
         ->paginate($perPage);
 
+        // dd($products);
+
         return response()->json([
             'data' => $products->items(),
             'meta' => [
@@ -175,7 +204,14 @@ class ProductController extends Controller
                 'per_page' => $products->perPage(),
                 'total' => $products->total(),
                 'last_page' => $products->lastPage(),
-            ]
+            ],
+            'links' => [
+                'first' => $products->url(1),
+                'last' => $products->url($products->lastPage()),
+                'prev' => $products->previousPageUrl(),
+                'next' => $products->nextPageUrl(),
+            ],
+            'filters' => array_filter($validated),
         ]);
     }
 }

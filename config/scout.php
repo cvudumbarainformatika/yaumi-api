@@ -1,5 +1,7 @@
 <?php
 
+use App\Models\Product;
+
 return [
 
     /*
@@ -140,12 +142,12 @@ return [
         'host' => env('MEILISEARCH_HOST', 'http://localhost:7700'),
         'key' => env('MEILISEARCH_KEY'),
         'index-settings' => [
-            'products' => [
+            Product::class => [
                 'searchableAttributes' => ['barcode', 'name', 'rak', 'category_name', 'satuan_name'],
                 'filterableAttributes' => [
                     'id', 'barcode', 'name', 'rak', 'category_id',
                     'category_name', 'satuan_id', 'satuan_name',
-                    'stock', 'hargajual', 'hargajualcust', 'hargajualantar'
+                    'stock','minstock','is_low_stock', 'hargajual', 'hargajualcust', 'hargajualantar'
                 ],
                 'sortableAttributes' => [
                     'name', 'created_at', 'updated_at', 'stock',

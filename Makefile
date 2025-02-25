@@ -24,6 +24,9 @@ tinker:
 clear:
 	docker compose exec app php artisan cache:clear && docker compose exec app php artisan config:clear
 
+conf:
+	docker compose exec app php artisan config:cache
+
 octane_status:
 	docker compose exec app php artisan octane:status
 

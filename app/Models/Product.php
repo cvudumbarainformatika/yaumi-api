@@ -53,6 +53,7 @@ class Product extends Model
             'hargajualantar' => $this->hargajualantar,
             'stock' => $this->stock,
             'minstock' => $this->minstock,
+            'is_low_stock' => $this->stock > 0 && $this->stock <= $this->minstock,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];
