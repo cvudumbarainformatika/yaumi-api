@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\CategoryController;
+use App\Http\Controllers\Api\SatuanController;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -23,7 +24,9 @@ Route::prefix('v1')->group(function () {
     // Products Routes
     Route::get('products/search', [ProductController::class, 'search'])->name('products.search');
     Route::apiResource('products', ProductController::class)->names('products');
-    
+
     // Categories Routes
     Route::apiResource('categories', CategoryController::class)->names('categories');
+    // Add these routes with your existing routes
+    Route::apiResource('satuans', SatuanController::class);
 });

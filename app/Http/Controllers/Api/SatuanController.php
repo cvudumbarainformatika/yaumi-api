@@ -6,12 +6,15 @@ use App\Http\Controllers\Controller;
 use App\Models\Satuan;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Cache;
 
 class SatuanController extends Controller
 {
     public function index(): JsonResponse
     {
-        $satuans = Satuan::all();
+        $satuans = Cache::rememberForever('satuans', function () {
+            return Satuan::all();
+        });
         return response()->json($satuans);
     }
 
@@ -23,6 +26,7 @@ class SatuanController extends Controller
         ]);
 
         $satuan = Satuan::create($validated);
+        Cache::forget('satuans');
         return response()->json($satuan, 201);
     }
 
@@ -39,12 +43,14 @@ class SatuanController extends Controller
         ]);
 
         $satuan->update($validated);
+        Cache::forget('satuans');
         return response()->json($satuan);
     }
 
     public function destroy(Satuan $satuan): JsonResponse
     {
         $satuan->delete();
+        Cache::forget('satuans');
         return response()->json(null, 204);
     }
 }
