@@ -28,5 +28,5 @@ Route::prefix('v1')->group(function () {
     // Categories Routes
     Route::apiResource('categories', CategoryController::class)->names('categories');
     // Add these routes with your existing routes
-    Route::apiResource('satuans', SatuanController::class);
+    Route::apiResource('satuans', SatuanController::class)->names('satuans');
 });
