@@ -55,10 +55,10 @@ meili_status:
 	docker compose exec meilisearch meilisearch --version
 
 meili_index:
-	docker compose exec app php artisan scout:import "App\Models\Product"
+	docker compose exec app php artisan scout:import "App\Models\Product" && docker compose exec app php artisan scout:import "App\Models\Supplier"
 
 meili_flush:
-	docker compose exec app php artisan scout:flush "App\Models\Product"
+	docker compose exec app php artisan scout:flush "App\Models\Product" && docker compose exec app php artisan scout:flush "App\Models\Supplier"
 
 meili_sync:
 	docker compose exec app php artisan scout:sync-index-settings
