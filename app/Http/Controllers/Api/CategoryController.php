@@ -7,14 +7,26 @@ use App\Models\Category;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;  // Add this at the top with other uses
 
 class CategoryController extends Controller
 {
+    private string $cacheKey = 'laravel_cache:categories';
+
     public function index(): JsonResponse
     {
-        $categories = Cache::rememberForever('categories', function () {
+        Log::info('Attempting to fetch categories from cache');
+        
+        $categories = Cache::remember($this->cacheKey, 3600, function () {
+            Log::info('Cache miss - fetching from database');
             return Category::all();
         });
+
+        Log::info('Cache status', [
+            'exists' => Cache::has($this->cacheKey),
+            'data_count' => $categories->count()
+        ]);
+
         return response()->json($categories);
     }
 
@@ -26,7 +38,7 @@ class CategoryController extends Controller
         ]);
 
         $category = Category::create($validated);
-        Cache::forget('categories');
+        Cache::forget($this->cacheKey);
         return response()->json($category, 201);
     }
 
@@ -43,14 +55,14 @@ class CategoryController extends Controller
         ]);
 
         $category->update($validated);
-        Cache::forget('categories');
+        Cache::forget($this->cacheKey);
         return response()->json($category);
     }
 
     public function destroy(Category $category): JsonResponse
     {
         $category->delete();
-        Cache::forget('categories');
+        Cache::forget($this->cacheKey);
         return response()->json(null, 204);
     }
 }

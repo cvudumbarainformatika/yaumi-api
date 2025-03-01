@@ -77,3 +77,38 @@ watch:
 
 watch_logs:
 	docker compose logs -f watcher
+
+# Queue Commands
+queue_status:
+	docker compose exec supervisor supervisorctl status
+
+queue_restart:
+	docker compose exec supervisor supervisorctl restart all
+
+queue_stop:
+	docker compose exec supervisor supervisorctl stop all
+
+queue_start:
+	docker compose exec supervisor supervisorctl start all
+
+# Redis Cache Commands
+redis_cache:
+	docker compose exec redis redis-cli
+
+redis_keys:
+	docker compose exec redis redis-cli KEYS "*"
+
+redis_get:
+	docker compose exec redis redis-cli GET $(key)
+
+redis_monitor:
+	docker compose exec redis redis-cli MONITOR
+
+redis_clear:
+	docker compose exec redis redis-cli FLUSHALL
+
+redis_info:
+	docker compose exec redis redis-cli info
+
+redis_flush:
+	docker compose exec redis redis-cli FLUSHALL

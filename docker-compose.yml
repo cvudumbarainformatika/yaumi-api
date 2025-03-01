@@ -12,12 +12,18 @@ services:
         depends_on:
             mysql:
                 condition: service_started
+            redis:
+                condition: service_started
         ports:
             - "8000:8000"
         environment:
             - COMPOSER_MEMORY_LIMIT=-1
         volumes:
             - ./:/var/www
+            - supervisor_run:/var/run/supervisor
+            - supervisor_log:/var/log/supervisor
+            - /etc/supervisor/conf.d
+        user: root  # Add this line to run container as root
         networks:
             - ryuuunet
         healthcheck:
@@ -109,14 +115,50 @@ services:
             timeout: 10s
             retries: 3
 
+    horizon:
+        build:
+            args:
+                user: ${USER}
+                uid: 1000
+            context: ./
+            dockerfile: Dockerfile.swoole
+        container_name: yaumi_horizon
+        working_dir: /var/www/
+        restart: unless-stopped
+        depends_on:
+            mysql:
+                condition: service_started
+            redis:
+                condition: service_started
+        environment:
+            - COMPOSER_MEMORY_LIMIT=-1
+        volumes:
+            - ./:/var/www
+            - supervisor_run:/var/run/supervisor
+            - supervisor_log:/var/log/supervisor
+        user: root
+        command: php artisan horizon
+        networks:
+            - ryuuunet
+        healthcheck:
+            test: ["CMD-SHELL", "ps aux | grep '[p]hp artisan horizon' || exit 1"]
+            interval: 30s
+            timeout: 10s
+            retries: 3
+
 networks:
     ryuuunet:
         driver: bridge
 
+# At the bottom of the file, add these volumes
 volumes:
     dbdata:
         driver: local
     meili_data:
         driver: local
     redis_data:
+        driver: local
+    supervisor_run:
+        driver: local
+    supervisor_log:
         driver: local

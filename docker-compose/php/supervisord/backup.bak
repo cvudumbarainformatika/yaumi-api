@@ -1,0 +1,28 @@
+[supervisord]
+nodaemon=true
+logfile=/var/www/storage/logs/supervisord.log
+pidfile=/var/run/supervisord.pid
+
+[program:app]
+directory=/var/www
+command=php artisan octane:start --server=swoole --host=0.0.0.0 --port=8000 --workers=2 --task-workers=1 --max-requests=100
+autostart=true
+autorestart=true
+stderr_logfile=/var/www/storage/logs/swoole.err.log
+stdout_logfile=/var/www/storage/logs/swoole.out.log
+user=%(ENV_USER)s
+stopasgroup=true
+killasgroup=true
+
+
+[program:app]
+directory=/var/www
+command=php /var/www/html/artisan queue:work --sleep=3 --tries=3
+autostart=true
+autorestart=true
+stopasgroup=true
+killasgroup=true
+user=%(ENV_USER)s
+numprocs=2
+redirect_stderr=true
+stopwaitsecs=900 ; Menunggu 15 menit sebelum memaksa stop

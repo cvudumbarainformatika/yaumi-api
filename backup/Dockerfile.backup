@@ -12,10 +12,12 @@ RUN apt-get update && apt-get install -y \
     libonig-dev \
     libxml2-dev \
     libzip-dev \
+    libssl-dev \
     supervisor \
     zip \
     unzip \
     openssl \
+    libssl-dev \
     procps \
     libbrotli-dev \
     && apt-get clean \
@@ -57,31 +59,16 @@ USER root
 RUN composer install --no-interaction --no-scripts
 RUN composer require laravel/octane --with-all-dependencies
 
-# Install Redis extension for PHP
-RUN pecl install redis && docker-php-ext-enable redis
-
-# Create necessary directories for supervisor
-RUN mkdir -p /var/log/supervisor /var/run/supervisor /etc/supervisor/conf.d && \
-    chmod -R 755 /var/log/supervisor /var/run/supervisor && \
-    chown -R root:root /var/log/supervisor /var/run/supervisor
+# Setup reload script (only once)
+# RUN mkdir -p /usr/local/bin
+# COPY docker-compose/scripts/reload.sh /usr/local/bin/
+# RUN chmod +x /usr/local/bin/reload.sh
 
 # Copy supervisor configuration
 COPY docker-compose/php/supervisord/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
-# Set application permissions
-RUN chown -R $user:$user /var/www
-
-# Stay as root for supervisor
-# Remove the USER $user line
-
-# Set proper permissions for supervisor
-RUN chmod 755 /var/run/supervisor
-RUN chmod 755 /var/log/supervisor
-
 # Set proper permissions
 RUN chown -R $user:$user /var/www
-RUN chown -R $user:$user /var/log/supervisor
-RUN chown -R $user:$user /var/run/supervisor
 
 # Switch back to application user
 USER $user
@@ -92,5 +79,5 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
-# Change the CMD to use supervisor instead
-CMD ["/usr/bin/supervisord", "-n", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+# Start Octane
+CMD ["php", "artisan", "octane:start", "--server=swoole", "--host=0.0.0.0", "--port=8000", "--workers=2", "--max-requests=100", "--task-workers=1"]
