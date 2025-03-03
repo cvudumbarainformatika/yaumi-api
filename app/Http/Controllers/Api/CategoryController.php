@@ -11,12 +11,12 @@ use Illuminate\Support\Facades\Log;  // Add this at the top with other uses
 
 class CategoryController extends Controller
 {
-    private string $cacheKey = 'laravel_cache:categories';
+    private string $cacheKey = 'yaumi_categories';
 
     public function index(): JsonResponse
     {
         Log::info('Attempting to fetch categories from cache');
-        
+
         $categories = Cache::remember($this->cacheKey, 3600, function () {
             Log::info('Cache miss - fetching from database');
             return Category::all();

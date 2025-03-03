@@ -47,8 +47,8 @@ RUN mkdir -p /home/$user/.composer && \
 # Set working directory
 WORKDIR /var/www
 
-# Copy application files
-COPY --chown=$user:$user . .
+# Copy application files with dynamic user
+COPY --chown=${user}:${user} . .
 
 # Switch to root for dependencies installation
 USER root

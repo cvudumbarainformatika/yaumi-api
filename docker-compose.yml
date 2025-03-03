@@ -2,7 +2,7 @@ services:
     app:
         build:
             args:
-                user: ${USER}
+                user: harry    # Changed to a custom user
                 uid: 1000
             context: ./
             dockerfile: Dockerfile.swoole
@@ -20,6 +20,7 @@ services:
             - COMPOSER_MEMORY_LIMIT=-1
         volumes:
             - ./:/var/www
+            - ./docker-compose/php/supervisord:/etc/supervisor/conf.d
             - supervisor_run:/var/run/supervisor
             - supervisor_log:/var/log/supervisor
             - /etc/supervisor/conf.d
@@ -110,41 +111,41 @@ services:
         networks:
             - ryuuunet
         healthcheck:
-            test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+            test: ["CMD", "redis-cli", "ping"]  # Changed healthcheck command
             interval: 30s
             timeout: 10s
             retries: 3
 
-    horizon:
-        build:
-            args:
-                user: ${USER}
-                uid: 1000
-            context: ./
-            dockerfile: Dockerfile.swoole
-        container_name: yaumi_horizon
-        working_dir: /var/www/
-        restart: unless-stopped
-        depends_on:
-            mysql:
-                condition: service_started
-            redis:
-                condition: service_started
-        environment:
-            - COMPOSER_MEMORY_LIMIT=-1
-        volumes:
-            - ./:/var/www
-            - supervisor_run:/var/run/supervisor
-            - supervisor_log:/var/log/supervisor
-        user: root
-        command: php artisan horizon
-        networks:
-            - ryuuunet
-        healthcheck:
-            test: ["CMD-SHELL", "ps aux | grep '[p]hp artisan horizon' || exit 1"]
-            interval: 30s
-            timeout: 10s
-            retries: 3
+    # horizon:
+    #     build:
+    #         args:
+    #             user: harry    # Changed to a custom user
+    #             uid: 1000
+    #         context: ./
+    #         dockerfile: Dockerfile.swoole
+    #     container_name: yaumi_horizon
+    #     working_dir: /var/www/
+    #     restart: unless-stopped
+    #     depends_on:
+    #         mysql:
+    #             condition: service_started
+    #         redis:
+    #             condition: service_started
+    #     environment:
+    #         - COMPOSER_MEMORY_LIMIT=-1
+    #     volumes:
+    #         - ./:/var/www
+    #         - supervisor_run:/var/run/supervisor
+    #         - supervisor_log:/var/log/supervisor
+    #     user: root
+    #     command: php artisan horizon
+    #     networks:
+    #         - ryuuunet
+    #     healthcheck:
+    #         test: ["CMD-SHELL", "ps aux | grep '[p]hp artisan horizon' || exit 1"]
+    #         interval: 30s
+    #         timeout: 10s
+    #         retries: 3
 
 networks:
     ryuuunet:
