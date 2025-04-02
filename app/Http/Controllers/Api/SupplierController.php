@@ -10,11 +10,33 @@ use Illuminate\Support\Facades\Cache;
 
 class SupplierController extends Controller
 {
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        $suppliers = Cache::rememberForever('suppliers', function () {
-            return Supplier::all();
-        });
+        $perPage = $request->input('per_page', 10);
+        $page = $request->input('page', 1);
+        $sortBy = $request->input('sort_by', 'created_at');
+        $sortDirection = $request->input('sort_direction', 'desc');
+        $query = $request->input('q', '');
+        
+        $suppliersQuery = Supplier::query();
+        
+        // Apply search if query parameter exists
+        if (!empty($query)) {
+            $suppliersQuery->where('name', 'like', "%{$query}%")
+                ->orWhere('email', 'like', "%{$query}%")
+                ->orWhere('phone', 'like', "%{$query}%")
+                ->orWhere('address', 'like', "%{$query}%");
+        }
+        
+        // Apply sorting
+        $suppliersQuery->orderBy($sortBy, $sortDirection);
+        
+        // Muat relasi hutang
+        $suppliersQuery->with('debt');
+        
+        // Get paginated results
+        $suppliers = $suppliersQuery->paginate($perPage, ['*'], 'page', $page);
+        
         return response()->json($suppliers);
     }
 
@@ -25,16 +47,38 @@ class SupplierController extends Controller
             'address' => 'nullable|string',
             'phone' => 'nullable|string',
             'email' => 'nullable|email',
-            'description' => 'nullable|string'
+            'description' => 'nullable|string',
+            'initial_amount' => 'nullable|numeric|min:0',
+            'debt_notes' => 'nullable|string'
         ]);
 
+        // Ekstrak data hutang dari input yang divalidasi
+        $debtData = [
+            'initial_amount' => $validated['initial_amount'] ?? 0,
+            'current_amount' => $validated['initial_amount'] ?? 0,
+            'notes' => $validated['debt_notes'] ?? null,
+        ];
+        
+        // Hapus field hutang dari data supplier
+        unset($validated['initial_amount'], $validated['debt_notes']);
+
+        // Buat supplier
         $supplier = Supplier::create($validated);
+        
+        // Buat catatan hutang terkait
+        $supplier->debt()->create($debtData);
+        
+        // Muat relasi hutang untuk respons
+        $supplier->load('debt');
+        
         Cache::forget('suppliers');
         return response()->json($supplier, 201);
     }
 
     public function show(Supplier $supplier): JsonResponse
     {
+        // Muat relasi hutang untuk menampilkan data lengkap
+        $supplier->load('debt');
         return response()->json($supplier);
     }
 
@@ -45,10 +89,44 @@ class SupplierController extends Controller
             'address' => 'nullable|string',
             'phone' => 'nullable|string',
             'email' => 'nullable|email',
-            'description' => 'nullable|string'
+            'description' => 'nullable|string',
+            'initial_amount' => 'nullable|numeric|min:0',
+            'current_amount' => 'nullable|numeric|min:0',
+            'debt_notes' => 'nullable|string'
         ]);
 
+        // Ekstrak data hutang dari input yang divalidasi
+        $debtData = [];
+        if (isset($validated['initial_amount'])) {
+            $debtData['initial_amount'] = $validated['initial_amount'];
+            unset($validated['initial_amount']);
+        }
+        
+        if (isset($validated['current_amount'])) {
+            $debtData['current_amount'] = $validated['current_amount'];
+            unset($validated['current_amount']);
+        }
+        
+        if (isset($validated['debt_notes'])) {
+            $debtData['notes'] = $validated['debt_notes'];
+            unset($validated['debt_notes']);
+        }
+
+        // Update data supplier
         $supplier->update($validated);
+        
+        // Update atau buat data hutang
+        if (!empty($debtData)) {
+            if ($supplier->debt) {
+                $supplier->debt->update($debtData);
+            } else {
+                $supplier->debt()->create($debtData);
+            }
+        }
+        
+        // Muat relasi hutang untuk respons
+        $supplier->load('debt');
+        
         Cache::forget('suppliers');
         return response()->json($supplier);
     }

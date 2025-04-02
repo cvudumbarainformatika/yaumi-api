@@ -33,6 +33,9 @@ octane_status:
 octane_reload:
 	docker compose exec app php artisan octane:reload
 
+refresh:
+	make clear && make optimize && make octane_reload
+
 
 # Docker Commands
 up:

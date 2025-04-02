@@ -35,4 +35,6 @@ Route::prefix('v1')->group(function () {
     // Supplier Routes
     Route::get('suppliers/search', [SupplierController::class, 'search'])->name('suppliers.search');
     Route::apiResource('suppliers', SupplierController::class)->names('suppliers');
+    // Tambahkan route untuk Customer
+    Route::apiResource('customers', \App\Http\Controllers\Api\CustomerController::class);
 });

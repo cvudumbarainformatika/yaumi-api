@@ -2,12 +2,14 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Laravel\Scout\Searchable;
 
 class Supplier extends Model
 {
-    use Searchable;
+    use HasFactory, Searchable;
 
     protected $guarded = ['id'];
     
@@ -58,5 +60,13 @@ class Supplier extends Model
     public function getSortableAttributes(): array
     {
         return ['name', 'email', 'phone', 'created_at', 'updated_at'];
+    }
+
+    /**
+     * Get the debt record associated with the supplier.
+     */
+    public function debt(): HasOne
+    {
+        return $this->hasOne(SupplierDebt::class);
     }
 }
