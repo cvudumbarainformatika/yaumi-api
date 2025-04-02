@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Log;  // Add this at the top with other uses
 
 class CategoryController extends Controller
 {
-    private string $cacheKey = 'yaumi_categories';
+    private string $cacheKey = 'laravel_categories';
 
     public function index(): JsonResponse
     {

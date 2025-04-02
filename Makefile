@@ -80,16 +80,16 @@ watch_logs:
 
 # Queue Commands
 queue_status:
-	docker compose exec supervisor supervisorctl status
+	docker compose exec app supervisorctl status
 
 queue_restart:
-	docker compose exec supervisor supervisorctl restart all
+	docker compose exec app supervisorctl restart all
 
 queue_stop:
-	docker compose exec supervisor supervisorctl stop all
+	docker compose exec app supervisorctl stop all
 
 queue_start:
-	docker compose exec supervisor supervisorctl start all
+	docker compose exec app supervisorctl start all
 
 # Redis Cache Commands
 redis_cache:

@@ -23,8 +23,7 @@ services:
             - ./docker-compose/php/supervisord:/etc/supervisor/conf.d
             - supervisor_run:/var/run/supervisor
             - supervisor_log:/var/log/supervisor
-            - /etc/supervisor/conf.d
-        user: root  # Add this line to run container as root
+        user: root
         networks:
             - ryuuunet
         healthcheck:
