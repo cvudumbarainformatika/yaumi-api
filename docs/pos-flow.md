@@ -128,7 +128,8 @@
       "product_id": 1,
       "quantity": 10,
       "unit_price": 50000,
-      "total_price": 500000
+      "total_price": 500000,
+      "item_status": "active"
     }
   ]
 }
@@ -154,7 +155,8 @@
       "product_id": 1,
       "quantity": 10,
       "unit_price": 50000,
-      "total_price": 500000
+      "total_price": 500000,
+      "item_status": "active"
     }
   ]
 }

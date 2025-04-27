@@ -15,6 +15,7 @@ return new class extends Migration
             $table->integer('quantity');
             $table->decimal('price', 15, 2);
             $table->decimal('total', 15, 2);
+            $table->enum('status', ['active', 'cancelled', 'added'])->default('active');
             $table->text('notes')->nullable();
             $table->timestamps();
         });

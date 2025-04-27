@@ -81,4 +81,17 @@ class PurchaseOrderController extends Controller
         $order->delete();
         return response()->json(['message' => 'Purchase order deleted']);
     }
+
+    public function updateItemStatus(Request $request, $id)
+    {
+        $validator = Validator::make($request->all(), [
+            'status' => 'required|in:active,cancelled,added',
+        ]);
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+        $item = PurchaseOrderItem::findOrFail($id);
+        $item->update(['status' => $request->status]);
+        return response()->json($item);
+    }
 }
