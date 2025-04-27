@@ -37,4 +37,5 @@ Route::prefix('v1')->group(function () {
     Route::apiResource('suppliers', SupplierController::class)->names('suppliers');
     // Tambahkan route untuk Customer
     Route::apiResource('customers', \App\Http\Controllers\Api\CustomerController::class);
+    Route::apiResource('purchase-orders', \App\Http\Controllers\Api\PurchaseOrderController::class);
 });

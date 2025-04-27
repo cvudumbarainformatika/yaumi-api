@@ -58,4 +58,9 @@ class Product extends Model
             'updated_at' => $this->updated_at,
         ];
     }
+
+    public function purchaseOrderItems()
+    {
+        return $this->hasMany(PurchaseOrderItem::class);
+    }
 }
