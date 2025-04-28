@@ -68,14 +68,16 @@ class PurchaseController extends Controller
                         'subtotal' => $subtotal,
                     ];
                 }
+                $uniqueCode = 'PB-' . date('Ymd') . '-' . uniqid();
                 $purchase = Purchase::create([
-                    'purchase_order_id' => $po->id,
-                    'supplier_id' => $supplier_id,
+                    'purchase_order_id' => $validated['purchase_order_id'],
+                    'supplier_id' => $validated['supplier_id'],
                     'purchase_date' => $validated['purchase_date'],
                     'total' => $total,
-                    'paid' => 0,
-                    'debt' => $total,
+                    'paid' => $validated['paid'],
+                    'debt' => $total - $validated['paid'],
                     'note' => $validated['note'] ?? null,
+                    'unique_code' => $uniqueCode,
                 ]);
                 foreach ($itemsData as $item) {
                     $purchaseItem = $purchase->items()->create($item);

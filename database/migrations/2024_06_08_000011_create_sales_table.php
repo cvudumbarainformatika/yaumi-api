@@ -16,6 +16,7 @@ return new class extends Migration
             $table->enum('status', ['draft', 'completed', 'cancelled']);
             $table->text('notes')->nullable();
             $table->timestamps();
+            $table->string('unique_code', 20)->unique();
         });
     }
 

@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('purchase_orders', function (Blueprint $table) {
             $table->id();
             $table->foreignId('supplier_id')->constrained('suppliers')->onDelete('cascade');
-            $table->string('order_number')->unique();
+            $table->string('unique_code', 20)->unique();
             $table->date('order_date');
             $table->text('notes')->nullable();
             $table->enum('status', ['draft', 'ordered', 'received', 'cancelled'])->default('draft');

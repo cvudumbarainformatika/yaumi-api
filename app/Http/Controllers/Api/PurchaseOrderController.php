@@ -20,7 +20,7 @@ class PurchaseOrderController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'supplier_id' => 'required|exists:suppliers,id',
-            'order_number' => 'required|string|unique:purchase_orders,order_number',
+            'unique_code' => 'required|string|unique:purchase_orders,unique_code',
             'order_date' => 'required|date',
             'notes' => 'nullable|string',
             'status' => 'nullable|in:draft,ordered,received,cancelled',
@@ -33,7 +33,8 @@ class PurchaseOrderController extends Controller
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
-        $order = PurchaseOrder::create($validator->validated());
+        $uniqueCode = 'PO-' . date('Ymd') . '-' . uniqid();
+        $order = PurchaseOrder::create(array_merge($validator->validated(), ['unique_code' => $uniqueCode]));
         foreach ($request->items as $item) {
             $order->items()->create($item);
         }
@@ -51,7 +52,7 @@ class PurchaseOrderController extends Controller
         $order = PurchaseOrder::findOrFail($id);
         $validator = Validator::make($request->all(), [
             'supplier_id' => 'sometimes|exists:suppliers,id',
-            'order_number' => 'sometimes|string|unique:purchase_orders,order_number,' . $order->id,
+            'unique_code' => 'sometimes|string|unique:purchase_orders,unique_code,' . $order->id,
             'order_date' => 'sometimes|date',
             'notes' => 'nullable|string',
             'status' => 'nullable|in:draft,ordered,received,cancelled',

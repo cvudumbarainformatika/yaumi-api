@@ -18,6 +18,7 @@ return new class extends Migration
             $table->decimal('debt', 16, 2)->default(0);
             $table->text('note')->nullable();
             $table->timestamps();
+            $table->string('unique_code', 20)->unique();
         });
         Schema::create('purchase_items', function (Blueprint $table) {
             $table->id();

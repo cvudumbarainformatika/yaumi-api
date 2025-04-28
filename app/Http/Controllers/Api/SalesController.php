@@ -31,12 +31,14 @@ class SalesController extends Controller
             foreach ($validated['items'] as $item) {
                 $total += $item['qty'] * $item['price'];
             }
+            $uniqueCode = 'PJ-' . date('Ymd') . '-' . uniqid();
             $sales = Sales::create([
                 'customer_id' => $validated['customer_id'],
                 'total' => $total,
                 'paid' => $validated['paid'],
                 'status' => 'completed',
                 'notes' => $validated['notes'] ?? null,
+                'unique_code' => $uniqueCode,
             ]);
 
             foreach ($validated['items'] as $item) {
