@@ -64,3 +64,85 @@ If you discover a security vulnerability within Laravel, please send an e-mail t
 ## License
 
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+
+## Dokumentasi Alur Mutasi Hutang Supplier & Stok Produk
+
+### Ringkasan
+Setiap transaksi pembelian akan otomatis mencatat:
+- Mutasi hutang supplier ke tabel `supplier_debt_histories`
+- Mutasi stok produk ke tabel `product_stock_mutations`
+
+Pencatatan ini memastikan audit trail, konsistensi laporan, dan kemudahan rekap saldo hutang maupun stok.
+
+### Struktur Tabel Terkait
+
+#### supplier_debt_histories
+- `id`
+- `supplier_debt_id`
+- `mutation_type` (`increase`/`decrease`)
+- `amount`
+- `source_type` (contoh: `purchase`)
+- `source_id` (ID transaksi sumber)
+- `notes`
+- `created_at`, `updated_at`
+
+#### product_stock_mutations
+- `id`
+- `product_id`
+- `mutation_type` (`in`/`out`)
+- `qty`
+- `source_type` (contoh: `purchase`)
+- `source_id` (ID transaksi sumber)
+- `notes`
+- `created_at`, `updated_at`
+
+### Alur Proses Pembelian
+1. User melakukan pembelian melalui endpoint `POST /api/purchases`.
+2. Sistem membuat record pembelian dan item pembelian.
+3. Untuk setiap item:
+   - Tambah mutasi stok (`mutation_type: in`) di `product_stock_mutations`.
+   - Tambah mutasi hutang (`mutation_type: increase`) di `supplier_debt_histories`.
+4. Saldo hutang supplier dan stok produk **tidak diupdate langsung**, melainkan dihitung dari rekap histori mutasi.
+5. Jika terjadi rollback/pembatalan pembelian, sistem mencatat mutasi pembalik (`decrease` untuk hutang, `out` untuk stok).
+
+### Contoh Struktur Data Mutasi Hutang
+```json
+{
+  "supplier_debt_id": 1,
+  "mutation_type": "increase",
+  "amount": 1000000,
+  "source_type": "purchase",
+  "source_id": 123,
+  "notes": "Pembelian PO #123"
+}
+```
+
+### Contoh Struktur Data Mutasi Stok
+```json
+{
+  "product_id": 5,
+  "mutation_type": "in",
+  "qty": 10,
+  "source_type": "purchase",
+  "source_id": 123,
+  "notes": "Pembelian PO #123"
+}
+```
+
+### Catatan Penting
+- **Saldo hutang supplier** dan **stok produk** harus selalu dihitung dari rekap mutasi, bukan update langsung field `current_amount` atau stok produk.
+- Setiap perubahan (pembelian, pembayaran, retur, pembatalan) wajib dicatat sebagai mutasi baru.
+- Audit trail dan laporan keuangan/stok menjadi lebih akurat dan mudah dilacak.
+
+### Endpoint Terkait
+- `POST /api/purchases` — Membuat pembelian & otomatis mencatat mutasi hutang dan stok.
+- `DELETE /api/purchases/{id}` — Pembatalan pembelian, sistem mencatat mutasi pembalik.
+
+### Flow Diagram
+1. Pembelian dibuat → Mutasi hutang & stok dicatat → Saldo dihitung dari histori
+2. Pembatalan/rollback → Mutasi pembalik dicatat → Saldo tetap konsisten
+
+### Manfaat
+- Integrasi laporan keuangan & stok lebih detail
+- Memudahkan audit dan tracing histori transaksi
+- Mencegah inkonsistensi data akibat update langsung
