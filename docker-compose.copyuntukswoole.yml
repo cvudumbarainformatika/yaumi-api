@@ -2,10 +2,10 @@ services:
     app:
         build:
             args:
-                user: harry
+                user: harry    # Changed to a custom user
                 uid: 1000
             context: ./
-            dockerfile: Dockerfile.fpm
+            dockerfile: Dockerfile.swoole
         container_name: yaumi_app
         working_dir: /var/www/
         restart: unless-stopped
@@ -15,14 +15,12 @@ services:
             redis:
                 condition: service_started
         ports:
-            - "9000:9000"
+            - "8000:8000"
         environment:
             - COMPOSER_MEMORY_LIMIT=-1
         volumes:
             - ./:/var/www
-            - ./docker-compose/supervisor/conf.d:/etc/supervisor/conf.d
-            - ./docker-compose/php/php.ini:/usr/local/etc/php/php.ini:ro
-            - ./docker-compose/php/php-fpm.conf:/usr/local/etc/php-fpm.d/www.conf:ro
+            - ./docker-compose/php/supervisord:/etc/supervisor/conf.d
             - supervisor_run:/var/run/supervisor
             - supervisor_log:/var/log/supervisor
         user: root

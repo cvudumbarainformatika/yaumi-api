@@ -41,7 +41,8 @@
 ## 5. Pengelolaan User, Hak Akses & Audit
 - **User Management**: Pengelolaan user (kasir, admin, owner) dan pengaturan hak akses fitur.
 - **Audit Log**: Riwayat aktivitas user untuk keamanan dan monitoring.
-- **Dashboard Ringkasan**: Tampilan ringkas performa toko (penjualan, stok kritis, piutang, hutang, kas
+- **Role & Permission Management**: Manajemen peran dan izin pengguna untuk mengontrol akses fitur.
+- **Dashboard Ringkasan**: Tampilan ringkas performa toko (penjualan, stok kritis, piutang, hutang, kas)
 ## 6. Pengaturan Toko
 - **Pengaturan Umum**: Informasi toko, alamat, kontak, dan logo.
 - **Pengaturan Akun**: Pengaturan akun toko seperti username, password, dan level akses.

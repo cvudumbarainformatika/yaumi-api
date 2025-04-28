@@ -2,6 +2,9 @@
 art:
 	docker compose exec app php artisan $(cmd)
 
+shell:
+	docker compose exec app bash
+
 # Common Laravel Commands
 migrate:
 	docker compose exec app php artisan migrate
@@ -22,7 +25,7 @@ tinker:
 	docker compose exec app php artisan tinker
 
 clear:
-	docker compose exec app php artisan cache:clear && docker compose exec app php artisan config:clear
+	docker compose exec app php artisan cache:clear && docker compose exec app php artisan config:clear && docker compose exec app php artisan route:clear
 
 conf:
 	docker compose exec app php artisan config:cache
@@ -115,3 +118,13 @@ redis_info:
 
 redis_flush:
 	docker compose exec redis redis-cli FLUSHALL
+
+# Supervisor Commands
+supervisor_reload:
+	docker compose exec app supervisorctl reload
+
+supervisor_status:
+	docker compose exec app supervisorctl status
+
+supervisor_restart:
+	docker compose exec app supervisorctl restart all

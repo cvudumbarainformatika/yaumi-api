@@ -11,39 +11,64 @@ RUN apt-get update && apt-get install -y \
     libpng-dev \
     libonig-dev \
     libxml2-dev \
+    libzip-dev \
+    supervisor \
     zip \
     unzip \
-    libzip-dev \
-    libss
+    openssl \
+    procps \
+    libbrotli-dev \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 # Install PHP extensions
+RUN docker-php-ext-install \
+    pdo_mysql \
+    mbstring \
+    exif \
+    pcntl \
+    bcmath \
+    gd \
+    zip \
+    sockets
 
-# Clear cache
-RUN apt-get clean && rm -rf /var/lib/apt/lists/*
-
-
+# Install Redis extension for PHP
+RUN pecl install redis && docker-php-ext-enable redis
 
 # Get latest Composer & install composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
+# Create system user
+RUN useradd -G www-data,root -u $uid -d /home/$user $user
+RUN mkdir -p /home/$user/.composer && \
+    chown -R $user:$user /home/$user
 
+# Set working directory
+WORKDIR /var/www
 
+# Create necessary directories for supervisor
+RUN mkdir -p /var/log/supervisor /var/run/supervisor /etc/supervisor/conf.d && \
+    chmod -R 755 /var/log/supervisor /var/run/supervisor
 
+# Copy application files
+COPY --chown=$user:$user . .
 
-# TODO not use node in producation
-# RUN apk add --no-cache nodejs npm git
+# Switch to root for dependencies installation
+USER root
 
-# COPY docker-compose/php/supervisord/supervisord.conf /etc/
+# Install dependencies
+RUN composer install --no-interaction --no-scripts
 
-# Create system user to run Composer and Artisan Commands
-RUN groupadd -g 1000 www
-RUN useradd -u 1000 -ms /bin/bash -g www www
+# Set proper permissions
+RUN chmod 755 /var/run/supervisor
+RUN chmod 755 /var/log/supervisor
+RUN chown -R $user:$user /var/www
+RUN chown -R $user:$user /var/log/supervisor
+RUN chown -R $user:$user /var/run/supervisor
 
-COPY . /var/www
-COPY --chown=www:www . /var/www
+# Switch back to application user
+USER $user
 
-USER www
+EXPOSE 9000
 
-EXPOSE 8000
-
-CMD ["php-fpm"]
+CMD ["/usr/bin/supervisord", "-n", "-c", "/etc/supervisor/conf.d/supervisord.conf"]

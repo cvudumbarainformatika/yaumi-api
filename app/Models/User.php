@@ -34,6 +34,15 @@ class User extends Authenticatable
     ];
 
     /**
+     * The roles and permissions for the user.
+     *
+     * @var array<string>
+     */
+    protected $roles = [];
+
+    protected $permissions = [];
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>
