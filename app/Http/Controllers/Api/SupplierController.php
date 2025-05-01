@@ -23,9 +23,7 @@ class SupplierController extends Controller
         // Apply search if query parameter exists
         if (!empty($query)) {
             $suppliersQuery->where('name', 'like', "%{$query}%")
-                ->orWhere('email', 'like', "%{$query}%")
-                ->orWhere('phone', 'like', "%{$query}%")
-                ->orWhere('address', 'like', "%{$query}%");
+                ->orWhere('phone', 'like', "%{$query}%");
         }
         
         // Apply sorting
@@ -35,7 +33,7 @@ class SupplierController extends Controller
         $suppliersQuery->with('debt');
         
         // Get paginated results
-        $suppliers = $suppliersQuery->paginate($perPage, ['*'], 'page', $page);
+        $suppliers = $suppliersQuery->simplePaginate($perPage, ['*'], 'page', $page);
         
         return response()->json($suppliers);
     }

@@ -8,6 +8,9 @@ return new class extends Migration
 {
     public function up(): void
     {
+        // Drop table if exists first
+        Schema::dropIfExists('customer_receivable_histories');
+        
         Schema::create('customer_receivable_histories', function (Blueprint $table) {
             $table->id();
             $table->foreignId('customer_id')->constrained()->onDelete('cascade');
