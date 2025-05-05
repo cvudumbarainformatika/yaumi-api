@@ -13,10 +13,11 @@ class PurchaseOrderItem extends Model
         'purchase_order_id',
         'product_id',
         'quantity',
+        'received_quantity',
         'price',
         'total',
         'notes',
-        'status', // Menambahkan atribut status
+        'status',
     ];
 
     public function purchaseOrder()

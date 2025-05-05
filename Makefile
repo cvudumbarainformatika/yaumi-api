@@ -25,7 +25,7 @@ tinker:
 	docker compose exec app php artisan tinker
 
 clear:
-	docker compose exec app php artisan cache:clear && docker compose exec app php artisan config:clear && docker compose exec app php artisan route:clear
+	docker compose exec app php artisan cache:clear
 
 conf:
 	docker compose exec app php artisan config:cache
@@ -37,7 +37,7 @@ octane_reload:
 	docker compose exec app php artisan octane:reload
 
 refresh:
-	make clear && make optimize && make octane_reload
+	docker compose exec app php artisan config:cache && docker compose exec app php artisan route:cache
 
 
 # Docker Commands

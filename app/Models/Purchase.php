@@ -11,11 +11,15 @@ class Purchase extends Model
     protected $fillable = [
         'purchase_order_id',
         'supplier_id',
-        'purchase_date',
+        'date',
+        'due_date',
         'total',
         'paid',
         'debt',
+        'payment_method',
         'note',
+        'unique_code',
+        'invoice_number',
     ];
 
     public function purchaseOrder()

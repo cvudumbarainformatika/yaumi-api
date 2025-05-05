@@ -38,81 +38,153 @@ class PurchaseController extends Controller
     {
         try {
             $validated = $request->validate([
-                'purchase_order_id' => 'required|exists:purchase_orders,id',
-                'purchase_date' => 'required|date',
+                'purchase_order_id' => 'nullable|exists:purchase_orders,id',
+                'supplier_id' => 'required|exists:suppliers,id',
+                'date' => 'required|date',
+                'due_date' => 'nullable|date|after_or_equal:date',
+                'paid' => 'required|numeric|min:0',
+                'payment_method' => 'required|string|in:cash,transfer,credit', // Tambahkan validasi metode pembayaran
+                'invoice_number' => 'nullable|string|max:255',
                 'items' => 'required|array|min:1',
-                'items.*.purchase_order_item_id' => 'required|exists:purchase_order_items,id',
+                'items.*.purchase_order_item_id' => 'nullable|exists:purchase_order_items,id',
                 'items.*.product_id' => 'required|exists:products,id',
                 'items.*.qty' => 'required|integer|min:1',
                 'items.*.price' => 'required|numeric|min:0',
                 'note' => 'nullable|string',
             ]);
 
-            return DB::transaction(function () use ($validated) {
-                $po = PurchaseOrder::findOrFail($validated['purchase_order_id']);
-                $supplier_id = $po->supplier_id;
+            // Set due_date berdasarkan metode pembayaran
+            if ($validated['payment_method'] === 'credit') {
+                // Untuk pembelian kredit
+                if (!isset($validated['due_date'])) {
+                    // Default 30 hari untuk kredit jika due_date tidak disediakan
+                    $purchaseDate = new \DateTime($validated['date']);
+                    $dueDate = $purchaseDate->modify('+30 days')->format('Y-m-d');
+                } else {
+                    $dueDate = $validated['due_date'];
+                }
+            } else {
+                // Untuk pembelian tunai atau transfer, due_date adalah tanggal pembelian
+                $dueDate = $validated['date'];
+            }
+
+            return DB::transaction(function () use ($validated, $dueDate) {
+                $supplier_id = null;
+                $po = null;
+                
+                // Jika ada purchase_order_id, ambil data PO
+                if (!empty($validated['purchase_order_id'])) {
+                    $po = PurchaseOrder::findOrFail($validated['purchase_order_id']);
+                    $supplier_id = $po->supplier_id;
+                } else {
+                    // Jika tidak ada PO, gunakan supplier_id dari request
+                    $supplier_id = $validated['supplier_id'];
+                }
+                
                 $total = 0;
                 $itemsData = [];
+                
                 foreach ($validated['items'] as $item) {
-                    $poItem = PurchaseOrderItem::findOrFail($item['purchase_order_item_id']);
-                    if (!in_array($poItem->status, ['ordered', 'active'])) {
-                        abort(422, 'Item PO tidak valid untuk diproses pembelian.');
+                    // Jika ada purchase_order_item_id, validasi status item PO
+                    if (!empty($item['purchase_order_item_id'])) {
+                        $poItem = PurchaseOrderItem::findOrFail($item['purchase_order_item_id']);
+                        if (!in_array($poItem->status, ['ordered', 'active'])) {
+                            abort(422, 'Item PO tidak valid untuk diproses pembelian.');
+                        }
                     }
+                    
                     $subtotal = $item['qty'] * $item['price'];
                     $total += $subtotal;
-                    $itemsData[] = [
-                        'purchase_order_item_id' => $item['purchase_order_item_id'],
+                    
+                    $itemData = [
                         'product_id' => $item['product_id'],
                         'qty' => $item['qty'],
                         'price' => $item['price'],
                         'subtotal' => $subtotal,
                     ];
+                    
+                    // Tambahkan purchase_order_item_id jika ada
+                    if (!empty($item['purchase_order_item_id'])) {
+                        $itemData['purchase_order_item_id'] = $item['purchase_order_item_id'];
+                    }
+                    
+                    $itemsData[] = $itemData;
                 }
-                $uniqueCode = 'PB-' . date('Ymd') . '-' . uniqid();
-                $purchase = Purchase::create([
-                    'purchase_order_id' => $validated['purchase_order_id'],
-                    'supplier_id' => $validated['supplier_id'],
-                    'purchase_date' => $validated['purchase_date'],
+                
+                $uniqueCode = 'PB-' . date('Ymd') . '-' . substr(uniqid(), -4);
+                
+                // Buat data purchase
+                $purchaseData = [
+                    'supplier_id' => $supplier_id,
+                    'date' => $validated['date'],
+                    'due_date' => $dueDate,
                     'total' => $total,
                     'paid' => $validated['paid'],
                     'debt' => $total - $validated['paid'],
                     'note' => $validated['note'] ?? null,
                     'unique_code' => $uniqueCode,
-                ]);
+                    'payment_method' => $validated['payment_method'], // Tambahkan payment_method
+                    'invoice_number' => $validated['invoice_number'] ?? null,
+                ];
+                
+                // Tambahkan purchase_order_id jika ada
+                if (!empty($validated['purchase_order_id'])) {
+                    $purchaseData['purchase_order_id'] = $validated['purchase_order_id'];
+                }
+                
+                $purchase = Purchase::create($purchaseData);
+                
+                // Proses item-item pembelian
                 foreach ($itemsData as $item) {
                     $purchaseItem = $purchase->items()->create($item);
+                    
                     // Update stok produk
                     $product = Product::find($item['product_id']);
                     $product->increment('stok', $item['qty']);
+                    
                     // Catat mutasi stok produk
+                    $notes = !empty($po) 
+                        ? 'Pembelian dari PO #' . $po->unique_code 
+                        : 'Pembelian langsung tanpa PO';
+                        
                     ProductStockMutation::create([
                         'product_id' => $item['product_id'],
                         'mutation_type' => 'in',
                         'qty' => $item['qty'],
                         'source_type' => 'purchase',
                         'source_id' => $purchase->id,
-                        'notes' => 'Pembelian dari PO #' . $po->order_number,
+                        'notes' => $notes,
                     ]);
-                    // Update status item PO
-                    $poItem = PurchaseOrderItem::find($item['purchase_order_item_id']);
-                    $poItem->status = 'active';
-                    $poItem->save();
+                    
+                    // Update status item PO jika ada
+                    if (!empty($item['purchase_order_item_id'])) {
+                        $poItem = PurchaseOrderItem::find($item['purchase_order_item_id']);
+                        $poItem->status = 'active';
+                        $poItem->save();
+                    }
                 }
+                
                 // Update hutang supplier
                 $supplier = Supplier::find($supplier_id);
                 $supplier->increment('saldo_hutang', $total);
+                
                 // Catat histori hutang supplier
                 $supplierDebt = $supplier->debt;
                 if ($supplierDebt) {
+                    $notes = !empty($po) 
+                        ? 'Pembelian dari PO #' . $po->unique_code 
+                        : 'Pembelian langsung tanpa PO';
+                        
                     SupplierDebtHistory::create([
                         'supplier_debt_id' => $supplierDebt->id,
                         'mutation_type' => 'increase',
                         'amount' => $total,
                         'source_type' => 'purchase',
                         'source_id' => $purchase->id,
-                        'notes' => 'Pembelian dari PO #' . $po->order_number,
+                        'notes' => $notes,
                     ]);
                 }
+                
                 return response()->json($purchase->load(['supplier', 'purchaseOrder', 'items.product']), 201);
             });
         } catch (\Throwable $e) {

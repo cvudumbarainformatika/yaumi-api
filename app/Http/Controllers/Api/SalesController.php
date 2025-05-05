@@ -49,8 +49,8 @@ class SalesController extends Controller
                     'price' => $item['price'],
                     'subtotal' => $item['qty'] * $item['price'],
                 ]);
-                // Mutasi stok keluar
-                ProductStockMutation::create([
+                // Mutasi stok keluar dengan running balance
+                ProductStockMutation::createMutation([
                     'product_id' => $item['product_id'],
                     'mutation_type' => 'out',
                     'qty' => $item['qty'],
@@ -58,8 +58,12 @@ class SalesController extends Controller
                     'source_id' => $sales->id,
                     'notes' => 'Penjualan',
                 ]);
+
                 // Update stok produk
-                Product::where('id', $item['product_id'])->decrement('stock', $item['qty']);
+                $product = Product::find($item['product_id']);
+                $product->update([
+                    'stok' => ProductStockMutation::getLastMutation($item['product_id'])->stock_after
+                ]);
             }
 
             // Piutang customer
