@@ -14,9 +14,27 @@ class Product extends Model
         'name',
         'description',
         'price',
-        'stok',
-        // ... kolom lainnya
+        'stock',
+        'barcode',
+        'category_id',
+        'satuan_id',
+        'hargabeli',
+        'hargajual',
+        'hargajualcust',
+        'hargajualantar',
+        'minstock',
+        'rak',
     ];
+
+    protected $casts = [
+        'hargabeli' => 'decimal:2',
+        'hargajual' => 'decimal:2',
+        'hargajualcust' => 'decimal:2',
+        'hargajualantar' => 'decimal:2',
+        'stock' => 'integer',
+        'minstock' => 'integer',
+    ];
+
     
     /**
      * Update stok produk dengan optimistic locking
@@ -33,7 +51,7 @@ class Product extends Model
             }
             
             // Update stok
-            $freshProduct->stok = $newStock;
+            $freshProduct->stock = $newStock;
             $freshProduct->save();
             
             // Refresh model saat ini
@@ -42,4 +60,53 @@ class Product extends Model
             return $this;
         });
     }
+
+
+    public function toSearchableArray(): array
+    {
+        return [
+            'id' => $this->id,
+            'barcode' => $this->barcode,
+            'name' => $this->name,
+            'rak' => $this->rak,
+            'category_id' => $this->category_id,
+            'category_name' => $this->category->name,
+            'satuan_id' => $this->satuan_id,
+            'satuan_name' => $this->satuan->name,
+            'hargabeli' => $this->hargabeli,
+            'hargajual' => $this->hargajual,
+            'hargajualcust' => $this->hargajualcust,
+            'hargajualantar' => $this->hargajualantar,
+            'stock' => $this->stock,
+            'minstock' => $this->minstock,
+            'is_low_stock' => $this->stock > 0 && $this->stock <= $this->minstock,
+            'created_at' => $this->created_at,
+            'updated_at' => $this->updated_at,
+        ];
+    }
+
+    public function category()
+    {
+        return $this->belongsTo(Category::class);
+    }
+
+    public function satuan()
+    {
+        return $this->belongsTo(Satuan::class);
+    }
+
+    public function searchableAs(): string
+    {
+        return 'products';
+    }
+
+
+    public function purchaseOrderItems()
+    {
+        return $this->hasMany(PurchaseOrderItem::class);
+    }
+
+
+
+
 }

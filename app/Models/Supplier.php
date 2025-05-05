@@ -65,7 +65,7 @@ class Supplier extends Model
     /**
      * Get the debt record associated with the supplier.
      */
-    public function debt(): HasOne
+    public function debt()
     {
         return $this->hasOne(SupplierDebt::class);
     }

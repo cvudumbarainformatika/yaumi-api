@@ -26,10 +26,16 @@ class PurchaseObserver
     {
         // Proses mutasi stok secara asinkron untuk menghindari blocking
         foreach ($purchase->items as $item) {
+            // Ambil stok terakhir untuk dikirim ke job
+            $lastMutation = ProductStockMutation::getLastMutation($item->product_id);
+            $stockBefore = $lastMutation ? $lastMutation->stock_after : 0;
+            
             ProcessStockMutation::dispatch([
                 'product_id' => $item->product_id,
                 'mutation_type' => 'in',
                 'qty' => $item->qty,
+                'stock_before' => $stockBefore,
+                'stock_after' => $stockBefore + $item->qty,
                 'source_type' => 'purchase',
                 'source_id' => $purchase->id,
                 'notes' => $purchase->purchase_order_id 
@@ -40,12 +46,10 @@ class PurchaseObserver
         
         // Proses hutang supplier
         $supplier = Supplier::find($purchase->supplier_id);
-        $supplier->increment('saldo_hutang', $purchase->debt);
-        
-        // Catat histori hutang
         $supplierDebt = $supplier->debt;
         if ($supplierDebt && $purchase->debt > 0) {
-            SupplierDebtHistory::create([
+            // Catat histori hutang dengan running balance
+            SupplierDebtHistory::createHistory([
                 'supplier_debt_id' => $supplierDebt->id,
                 'mutation_type' => 'increase',
                 'amount' => $purchase->debt,
@@ -80,7 +84,7 @@ class PurchaseObserver
                 $product = Product::find($item->product_id);
                 if ($product) {
                     $product->update([
-                        'stok' => ProductStockMutation::getLastMutation($item->product_id)->stock_after
+                        'stock' => ProductStockMutation::getLastMutation($item->product_id)->stock_after // Ubah dari 'stok' menjadi 'stock'
                     ]);
                 }
             }
@@ -88,12 +92,10 @@ class PurchaseObserver
             // Rollback hutang supplier
             $supplier = Supplier::find($purchase->supplier_id);
             if ($supplier && $purchase->debt > 0) {
-                $supplier->decrement('saldo_hutang', $purchase->debt);
-                
-                // Catat histori hutang
                 $supplierDebt = $supplier->debt;
                 if ($supplierDebt) {
-                    SupplierDebtHistory::create([
+                    // Catat histori hutang dengan running balance
+                    SupplierDebtHistory::createHistory([
                         'supplier_debt_id' => $supplierDebt->id,
                         'mutation_type' => 'decrease',
                         'amount' => $purchase->debt,

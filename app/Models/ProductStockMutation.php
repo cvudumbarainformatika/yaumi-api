@@ -79,7 +79,7 @@ class ProductStockMutation extends Model
             ]);
             
             // Update stok produk
-            $product->update(['stok' => $stockAfter]);
+            $product->update(['stock' => $stockAfter]); // Ubah dari 'stok' menjadi 'stock'
             
             return $mutation;
         }, 5); // Retry 5 kali jika terjadi deadlock

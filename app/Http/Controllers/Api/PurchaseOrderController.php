@@ -18,7 +18,7 @@ class PurchaseOrderController extends Controller
         $query = PurchaseOrder::query();
         
         // Relasi yang perlu di-load
-        $query->with(['supplier', 'items.product']);
+        $query->with(['supplier', 'items.product', 'purchases:id,purchase_order_id']);
         
         // Filter pencarian jika parameter q tidak kosong
         if ($request->filled('q') && !empty($request->q)) {
@@ -131,7 +131,7 @@ class PurchaseOrderController extends Controller
 
     public function show($id)
     {
-        $order = PurchaseOrder::with(['supplier', 'items.product:id,name,barcode'])->findOrFail($id);
+        $order = PurchaseOrder::with(['supplier', 'items.product:id,name,barcode','purchases:id,purchase_order_id'])->findOrFail($id);
         return response()->json($order);
     }
 

@@ -50,10 +50,22 @@ class SalesController extends Controller
                     'subtotal' => $item['qty'] * $item['price'],
                 ]);
                 // Mutasi stok keluar dengan running balance
+                $lastMutation = ProductStockMutation::getLastMutation($item['product_id']);
+                $stockBefore = $lastMutation ? $lastMutation->stock_after : 0;
+
+                // Validasi stok cukup
+                if ($stockBefore < $item['qty']) {
+                    throw new \Exception("Stok tidak cukup untuk produk ID: {$item['product_id']}");
+                }
+
+                $stockAfter = $stockBefore - $item['qty'];
+
                 ProductStockMutation::createMutation([
                     'product_id' => $item['product_id'],
                     'mutation_type' => 'out',
                     'qty' => $item['qty'],
+                    'stock_before' => $stockBefore,
+                    'stock_after' => $stockAfter,
                     'source_type' => 'sales',
                     'source_id' => $sales->id,
                     'notes' => 'Penjualan',
@@ -62,7 +74,7 @@ class SalesController extends Controller
                 // Update stok produk
                 $product = Product::find($item['product_id']);
                 $product->update([
-                    'stok' => ProductStockMutation::getLastMutation($item['product_id'])->stock_after
+                    'stock' => ProductStockMutation::getLastMutation($item['product_id'])->stock_after
                 ]);
             }
 
