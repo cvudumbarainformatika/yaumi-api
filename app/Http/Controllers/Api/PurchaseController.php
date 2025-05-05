@@ -125,6 +125,7 @@ class PurchaseController extends Controller
                     'unique_code' => $uniqueCode,
                     'payment_method' => $validated['payment_method'], // Tambahkan payment_method
                     'invoice_number' => $validated['invoice_number'] ?? null,
+                    'skip_stock_mutation' => true, // Tambahkan flag untuk skip mutasi stok di observer
                 ];
                 
                 // Tambahkan purchase_order_id jika ada

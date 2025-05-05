@@ -24,6 +24,12 @@ class PurchaseObserver
      */
     public function created(Purchase $purchase): void
     {
+        // PERBAIKAN: Cek apakah mutasi stok sudah dibuat di controller
+        // Jika sudah ada flag, skip pembuatan mutasi stok
+        if ($purchase->skip_stock_mutation ?? false) {
+            return;
+        }
+
         // Proses mutasi stok secara asinkron untuk menghindari blocking
         foreach ($purchase->items as $item) {
             // Ambil stok terakhir untuk dikirim ke job

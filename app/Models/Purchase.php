@@ -9,17 +9,18 @@ class Purchase extends Model
 {
     use HasFactory;
     protected $fillable = [
-        'purchase_order_id',
         'supplier_id',
+        'purchase_order_id',
         'date',
         'due_date',
         'total',
         'paid',
         'debt',
-        'payment_method',
         'note',
         'unique_code',
+        'payment_method',
         'invoice_number',
+        'skip_stock_mutation',
     ];
 
     public function purchaseOrder()
