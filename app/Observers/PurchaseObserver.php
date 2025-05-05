@@ -53,6 +53,16 @@ class PurchaseObserver
         // Proses hutang supplier
         $supplier = Supplier::find($purchase->supplier_id);
         $supplierDebt = $supplier->debt;
+        
+        // Jika belum ada catatan hutang, buat baru
+        if (!$supplierDebt && $purchase->debt > 0) {
+            $supplierDebt = $supplier->debt()->create([
+                'initial_amount' => 0,
+                'current_amount' => 0, // Akan diupdate oleh createHistory
+                'notes' => 'Hutang dari pembelian #' . $purchase->unique_code
+            ]);
+        }
+        
         if ($supplierDebt && $purchase->debt > 0) {
             // Catat histori hutang dengan running balance
             SupplierDebtHistory::createHistory([
