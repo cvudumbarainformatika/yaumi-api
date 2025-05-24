@@ -18,6 +18,13 @@ class Sales extends Model
         'paid',
         'status',
         'notes',
+        'payment_method',
+        'discount',
+        'tax',
+        'reference',
+        'cashier_id',
+        'received',
+        'total_received',
     ];
 
     public function customer(): BelongsTo

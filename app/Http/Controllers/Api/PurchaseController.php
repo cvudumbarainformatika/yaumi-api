@@ -24,14 +24,67 @@ class PurchaseController extends Controller
             ->leftJoin('suppliers', 'purchases.supplier_id', '=', 'suppliers.id')
             ->leftJoin('purchase_orders', 'purchases.purchase_order_id', '=', 'purchase_orders.id')
             ->with(['supplier', 'purchaseOrder', 'items.product']);
-        if ($request->filled('supplier')) {
-            $query->where('suppliers.name', 'like', '%' . $request->supplier . '%');
+        // if ($request->filled('supplier')) {
+        //     $query->where('suppliers.name', 'like', '%' . $request->supplier . '%');
+        // }
+
+        // Filter pencarian jika parameter q tidak kosong
+        if ($request->filled('q') && !empty($request->q)) {
+            $search = $request->q;
+            $query->where(function($q) use ($search) {
+                $q->where('purchases.unique_code', 'like', "%{$search}%")
+                  ->orWhereExists(function ($query) use ($search) {
+                      $query->select(DB::raw(1))
+                            ->from('suppliers')
+                            ->whereColumn('suppliers.id', 'purchases.supplier_id')
+                            ->where('suppliers.name', 'like', "%{$search}%");
+                  });
+            });
         }
+
+
         if ($request->filled('status')) {
-            $query->where('purchase_orders.status', $request->status);
+            if ($request->status === 'order') {
+                $query->whereNotNull('purchases.purchase_order_id');
+            } elseif ($request->status === 'langsung') {
+                $query->whereNull('purchases.purchase_order_id');
+            } elseif ($request->status === 'semua') {
+                // Tidak ada filter tambahan
+            } else {
+                $query->where('purchase_orders.status', $request->status);
+            }
         }
-        $purchases = $query->orderByDesc('purchases.id')->simplePaginate(15);
-        return response()->json($purchases);
+
+        // Filter berdasarkan rentang tanggal jika ada
+        if ($request->filled('start_date') && $request->filled('end_date')) {
+            $query->whereBetween('date', [$request->start_date, $request->end_date]);
+        }
+
+
+        // $purchases = $query->orderByDesc('purchases.id')->simplePaginate(15);
+        $perPage = $request->input('per_page', 10);
+        $totalCount = (clone $query)->count();
+
+        // Lakukan pagination dengan simplePaginate
+        $purchases = $query->simplePaginate($perPage);
+
+        $data = [
+            'data' => $purchases->items(),
+            'meta' => [
+                'first' => $purchases->url(1),
+                'last' => null, // SimplePaginator tidak menyediakan ini
+                'prev' => $purchases->previousPageUrl(),
+                'next' => $purchases->nextPageUrl(),
+                'current_page' => $purchases->currentPage(),
+                'per_page' => (int)$perPage,
+                'total' => (int)$totalCount,
+                'last_page' => ceil($totalCount / $perPage),
+                'from' => (($purchases->currentPage() - 1) * $perPage) + 1,
+                'to' => min($purchases->currentPage() * $perPage, $totalCount),
+            ],
+        ];
+
+        return response()->json($data);
     }
 
     public function store(Request $request)
@@ -73,7 +126,7 @@ class PurchaseController extends Controller
                 try {
                     $supplier_id = null;
                     $po = null;
-                    
+
                     // Jika ada purchase_order_id, ambil data PO
                     if (!empty($validated['purchase_order_id'])) {
                         $po = PurchaseOrder::findOrFail($validated['purchase_order_id']);
@@ -82,10 +135,10 @@ class PurchaseController extends Controller
                         // Jika tidak ada PO, gunakan supplier_id dari request
                         $supplier_id = $validated['supplier_id'];
                     }
-                    
+
                     $total = 0;
                     $itemsData = [];
-                    
+
                     foreach ($validated['items'] as $item) {
                         // Jika ada purchase_order_item_id, validasi status item PO
                         if (!empty($item['purchase_order_item_id'])) {
@@ -94,27 +147,27 @@ class PurchaseController extends Controller
                                 throw new \Exception('Item PO tidak valid untuk diproses pembelian.');
                             }
                         }
-                        
+
                         $subtotal = $item['qty'] * $item['price'];
                         $total += $subtotal;
-                        
+
                         $itemData = [
                             'product_id' => $item['product_id'],
                             'qty' => $item['qty'],
                             'price' => $item['price'],
                             'subtotal' => $subtotal,
                         ];
-                        
+
                         // Tambahkan purchase_order_item_id jika ada
                         if (!empty($item['purchase_order_item_id'])) {
                             $itemData['purchase_order_item_id'] = $item['purchase_order_item_id'];
                         }
-                        
+
                         $itemsData[] = $itemData;
                     }
-                    
+
                     $uniqueCode = 'PB-' . date('Ymd') . '-' . substr(uniqid(), -4);
-                    
+
                     // Buat data purchase
                     $purchaseData = [
                         'supplier_id' => $supplier_id,
@@ -129,34 +182,34 @@ class PurchaseController extends Controller
                         'invoice_number' => $validated['invoice_number'] ?? null,
                         'skip_stock_mutation' => true, // Flag untuk skip mutasi stok di observer
                     ];
-                    
+
                     // Tambahkan purchase_order_id jika ada
                     if (!empty($validated['purchase_order_id'])) {
                         $purchaseData['purchase_order_id'] = $validated['purchase_order_id'];
                     }
-                    
+
                     $purchase = Purchase::create($purchaseData);
-                    
+
                     // Proses item-item pembelian
                     foreach ($itemsData as $item) {
                         $purchaseItem = $purchase->items()->create($item);
-                        
+
                         // Update stok produk
                         $product = Product::find($item['product_id']);
                         if (!$product) {
                             throw new \Exception("Produk dengan ID {$item['product_id']} tidak ditemukan.");
                         }
-                        
+
                         $product->increment('stock', $item['qty']);
-                        
+
                         // Catat mutasi stok produk dengan metode createMutation
                         $lastMutation = ProductStockMutation::getLastMutation($item['product_id']);
                         $stockBefore = $lastMutation ? $lastMutation->stock_after : 0;
 
-                        $notes = !empty($po) 
-                            ? 'Pembelian dari PO #' . $po->unique_code 
+                        $notes = !empty($po)
+                            ? 'Pembelian dari PO #' . $po->unique_code
                             : 'Pembelian langsung tanpa PO';
-                            
+
                         ProductStockMutation::createMutation([
                             'product_id' => $item['product_id'],
                             'mutation_type' => 'in',
@@ -167,7 +220,7 @@ class PurchaseController extends Controller
                             'source_id' => $purchase->id,
                             'notes' => $notes,
                         ]);
-                        
+
                         // Update status item PO jika ada
                         if (!empty($item['purchase_order_item_id'])) {
                             $poItem = PurchaseOrderItem::find($item['purchase_order_item_id']);
@@ -178,16 +231,16 @@ class PurchaseController extends Controller
                             $poItem->save();
                         }
                     }
-                    
+
                     // PERBAIKAN: Gunakan createHistory untuk hutang supplier
                     // Dapatkan supplier dan hutangnya
                     $supplier = Supplier::find($supplier_id);
                     if (!$supplier) {
                         throw new \Exception("Supplier dengan ID {$supplier_id} tidak ditemukan.");
                     }
-                    
+
                     $supplierDebt = $supplier->debt;
-                    
+
                     // Jika belum ada catatan hutang, buat baru
                     if (!$supplierDebt && ($total - $validated['paid'] > 0)) {
                         $supplierDebt = $supplier->debt()->create([
@@ -196,13 +249,13 @@ class PurchaseController extends Controller
                             'notes' => 'Hutang dari pembelian #' . $purchase->unique_code
                         ]);
                     }
-                    
+
                     // Catat histori hutang supplier jika ada hutang
                     if ($supplierDebt && ($total - $validated['paid'] > 0)) {
-                        $notes = !empty($po) 
-                            ? 'Pembelian dari PO #' . $po->unique_code 
+                        $notes = !empty($po)
+                            ? 'Pembelian dari PO #' . $po->unique_code
                             : 'Pembelian langsung tanpa PO';
-                        
+
                         // Gunakan createHistory untuk konsistensi dengan running balance
                         SupplierDebtHistory::createHistory([
                             'supplier_debt_id' => $supplierDebt->id,
@@ -218,7 +271,7 @@ class PurchaseController extends Controller
                     if (!empty($po)) {
                         $po->updateStatus();
                     }
-                    
+
                     return response()->json($purchase->load(['supplier', 'purchaseOrder', 'items.product']), 201);
                 } catch (\Exception $e) {
                     // Tangkap error dan throw kembali untuk memicu rollback
@@ -226,7 +279,7 @@ class PurchaseController extends Controller
                         'exception' => $e,
                         'trace' => $e->getTraceAsString()
                     ]);
-                    
+
                     // Throw exception untuk memicu rollback otomatis
                     throw $e;
                 }
@@ -236,7 +289,7 @@ class PurchaseController extends Controller
                 'exception' => $e,
                 'trace' => $e->getTraceAsString()
             ]);
-            
+
             return response()->json([
                 'message' => 'Terjadi kesalahan saat memproses transaksi pembelian.',
                 'error' => app()->environment('production') ? null : $e->getMessage()
@@ -254,7 +307,7 @@ class PurchaseController extends Controller
     {
         try {
             $purchase = Purchase::with(['items'])->findOrFail($id);
-            
+
             return DB::transaction(function () use ($purchase) {
                 try {
                     // Rollback stok produk dan catat mutasi keluar
@@ -263,28 +316,28 @@ class PurchaseController extends Controller
                         if (!$product) {
                             throw new \Exception("Produk dengan ID {$item->product_id} tidak ditemukan.");
                         }
-                        
+
                         // Validasi stok cukup untuk dikurangi
                         if ($product->stock < $item->qty) {
                             throw new \Exception("Stok produk {$product->name} tidak cukup untuk dibatalkan.");
                         }
-                        
+
                         $product->decrement('stock', $item->qty);
-                        
+
                         // Ambil stok terakhir untuk dikirim ke job
                         $lastMutation = ProductStockMutation::getLastMutation($item->product_id);
                         if (!$lastMutation) {
                             throw new \Exception("Tidak ada catatan mutasi stok untuk produk ID {$item->product_id}.");
                         }
-                        
+
                         $stockBefore = $lastMutation->stock_after;
                         $stockAfter = $stockBefore - $item->qty;
-                        
+
                         // Validasi stok tidak negatif
                         if ($stockAfter < 0) {
                             throw new \Exception("Pembatalan akan menyebabkan stok negatif untuk produk ID {$item->product_id}.");
                         }
-                        
+
                         ProductStockMutation::createMutation([
                             'product_id' => $item->product_id,
                             'mutation_type' => 'out',
@@ -296,24 +349,24 @@ class PurchaseController extends Controller
                             'notes' => 'Pembatalan pembelian',
                         ]);
                     }
-                    
+
                     // Rollback hutang supplier dan catat histori
                     $supplier = Supplier::find($purchase->supplier_id);
                     if (!$supplier) {
                         throw new \Exception("Supplier dengan ID {$purchase->supplier_id} tidak ditemukan.");
                     }
-                    
+
                     if ($supplier && $purchase->debt > 0) {
                         $supplierDebt = $supplier->debt;
                         if (!$supplierDebt) {
                             throw new \Exception("Tidak ada catatan hutang untuk supplier ID {$purchase->supplier_id}.");
                         }
-                        
+
                         // Validasi saldo hutang cukup untuk dikurangi
                         if ($supplierDebt->current_amount < $purchase->debt) {
                             throw new \Exception("Saldo hutang supplier tidak cukup untuk dibatalkan.");
                         }
-                        
+
                         // PERBAIKAN: Gunakan createHistory untuk konsistensi
                         SupplierDebtHistory::createHistory([
                             'supplier_debt_id' => $supplierDebt->id,
@@ -324,10 +377,10 @@ class PurchaseController extends Controller
                             'notes' => 'Pembatalan pembelian',
                         ]);
                     }
-                    
+
                     // Hapus purchase setelah semua rollback berhasil
                     $purchase->delete();
-                    
+
                     return response()->json(['message' => 'Transaksi pembelian berhasil dihapus']);
                 } catch (\Exception $e) {
                     // Tangkap error dan throw kembali untuk memicu rollback
@@ -335,7 +388,7 @@ class PurchaseController extends Controller
                         'exception' => $e,
                         'trace' => $e->getTraceAsString()
                     ]);
-                    
+
                     // Throw exception untuk memicu rollback otomatis
                     throw $e;
                 }
@@ -345,7 +398,7 @@ class PurchaseController extends Controller
                 'exception' => $e,
                 'trace' => $e->getTraceAsString()
             ]);
-            
+
             return response()->json([
                 'message' => 'Terjadi kesalahan saat membatalkan transaksi pembelian.',
                 'error' => app()->environment('production') ? null : $e->getMessage()

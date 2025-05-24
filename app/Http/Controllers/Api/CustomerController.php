@@ -17,26 +17,24 @@ class CustomerController extends Controller
         $sortBy = $request->input('sort_by', 'created_at');
         $sortDirection = $request->input('sort_direction', 'desc');
         $query = $request->input('q', '');
-        
+
         $customersQuery = Customer::query();
-        
+
         // Apply search if query parameter exists
         if (!empty($query)) {
             $customersQuery->where('name', 'like', "%{$query}%")
-                ->orWhere('email', 'like', "%{$query}%")
-                ->orWhere('phone', 'like', "%{$query}%")
-                ->orWhere('address', 'like', "%{$query}%");
+                ->orWhere('phone', 'like', "%{$query}%");
         }
-        
+
         // Apply sorting
         $customersQuery->orderBy($sortBy, $sortDirection);
-        
+
         // Muat relasi piutang
         $customersQuery->with('receivable');
-        
+
         // Get paginated results
-        $customers = $customersQuery->paginate($perPage, ['*'], 'page', $page);
-        
+        $customers = $customersQuery->simplePaginate($perPage, ['*'], 'page', $page);
+
         return response()->json($customers);
     }
 
@@ -58,19 +56,19 @@ class CustomerController extends Controller
             'current_amount' => $validated['initial_amount'] ?? 0,
             'notes' => $validated['receivable_notes'] ?? null,
         ];
-        
+
         // Hapus field piutang dari data customer
         unset($validated['initial_amount'], $validated['receivable_notes']);
 
         // Buat customer
         $customer = Customer::create($validated);
-        
+
         // Buat catatan piutang terkait
         $customer->receivable()->create($receivableData);
-        
+
         // Muat relasi piutang untuk respons
         $customer->load('receivable');
-        
+
         return response()->json($customer, 201);
     }
 
@@ -100,12 +98,12 @@ class CustomerController extends Controller
             $receivableData['initial_amount'] = $validated['initial_amount'];
             unset($validated['initial_amount']);
         }
-        
+
         if (isset($validated['current_amount'])) {
             $receivableData['current_amount'] = $validated['current_amount'];
             unset($validated['current_amount']);
         }
-        
+
         if (isset($validated['receivable_notes'])) {
             $receivableData['notes'] = $validated['receivable_notes'];
             unset($validated['receivable_notes']);
@@ -113,7 +111,7 @@ class CustomerController extends Controller
 
         // Update data customer
         $customer->update($validated);
-        
+
         // Update atau buat data piutang
         if (!empty($receivableData)) {
             if ($customer->receivable) {
@@ -122,10 +120,10 @@ class CustomerController extends Controller
                 $customer->receivable()->create($receivableData);
             }
         }
-        
+
         // Muat relasi piutang untuk respons
         $customer->load('receivable');
-        
+
         return response()->json($customer);
     }
 
@@ -133,5 +131,28 @@ class CustomerController extends Controller
     {
         $customer->delete();
         return response()->json(null, 204);
+    }
+
+    public function search(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'q' => 'nullable|string',
+            'sort_by' => 'nullable|in:name,email,phone,created_at',
+            'sort_dir' => 'nullable|in:asc,desc',
+            'per_page' => 'nullable|integer|min:1|max:100'
+        ]);
+
+        $query = $validated['q'] ?? '';
+        $perPage = $validated['per_page'] ?? 10;
+
+        $searchQuery = Customer::search($query);
+
+        if (!empty($validated['sort_by'])) {
+            $direction = $validated['sort_dir'] ?? 'asc';
+            $searchQuery->orderBy($validated['sort_by'], $direction);
+        }
+
+        $results = $searchQuery->paginate($perPage);
+        return response()->json($results);
     }
 }

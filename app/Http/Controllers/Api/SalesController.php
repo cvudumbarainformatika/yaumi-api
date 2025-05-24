@@ -24,6 +24,11 @@ class SalesController extends Controller
             'items.*.price' => 'required|numeric|min:0',
             'paid' => 'required|numeric|min:0',
             'notes' => 'nullable|string',
+            'payment_method' => 'nullable|string',
+            'discount' => 'nullable|numeric|min:0',
+            'tax' => 'nullable|numeric|min:0',
+            'reference' => 'nullable|string',
+            'cashier_id' => 'nullable|exists:users,id',
         ]);
 
         return DB::transaction(function () use ($validated) {
@@ -31,14 +36,24 @@ class SalesController extends Controller
             foreach ($validated['items'] as $item) {
                 $total += $item['qty'] * $item['price'];
             }
+            $discount = $validated['discount'] ?? 0;
+            $tax = $validated['tax'] ?? 0;
+            $grandTotal = $total - $discount + $tax;
             $uniqueCode = 'PJ-' . date('Ymd') . '-' . uniqid();
             $sales = Sales::create([
                 'customer_id' => $validated['customer_id'],
-                'total' => $total,
+                'total' => $grandTotal,
                 'paid' => $validated['paid'],
                 'status' => 'completed',
                 'notes' => $validated['notes'] ?? null,
                 'unique_code' => $uniqueCode,
+                'payment_method' => $validated['payment_method'] ?? null,
+                'discount' => $discount,
+                'tax' => $tax,
+                'reference' => $validated['reference'] ?? null,
+                'cashier_id' => $validated['cashier_id'] ?? null,
+                'received' => ($validated['paid'] >= $grandTotal),
+                'total_received' => $validated['paid'],
             ]);
 
             foreach ($validated['items'] as $item) {
