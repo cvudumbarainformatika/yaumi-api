@@ -36,7 +36,7 @@ class Product extends Model
         'minstock' => 'integer',
     ];
 
-    
+
     /**
      * Update stok produk dengan optimistic locking
      */
@@ -45,19 +45,19 @@ class Product extends Model
         return DB::transaction(function () use ($newStock) {
             // Ambil produk terbaru
             $freshProduct = self::lockForUpdate()->find($this->id);
-            
+
             // Jika timestamp berbeda, berarti ada perubahan bersamaan
             if ($freshProduct->updated_at->ne($this->updated_at)) {
                 throw new \Exception("Produk telah diubah oleh proses lain. Silakan coba lagi.");
             }
-            
+
             // Update stok
             $freshProduct->stock = $newStock;
             $freshProduct->save();
-            
+
             // Refresh model saat ini
             $this->refresh();
-            
+
             return $this;
         });
     }

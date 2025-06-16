@@ -71,6 +71,7 @@ class SalesController extends Controller
     {
         $validated = $request->validate([
             'unique_code' => 'required|string|unique:sales', // Tambahkan validasi untuk 'unique_code'
+            'reference' => 'required|string|unique:sales', // Tambahkan validasi untuk 'unique_code'
             'customer_id' => 'nullable|exists:customers,id',
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'required|exists:products,id',
@@ -79,11 +80,12 @@ class SalesController extends Controller
             'paid' => 'required|numeric|min:0',
             'bayar' => 'required|numeric|min:0',
             'kembali' => 'nullable|numeric|min:0',
+            'dp' => 'nullable|numeric|min:0',
+            'tempo' => 'nullable|numeric|min:0',
             'notes' => 'nullable|string',
             'payment_method' => 'nullable|string',
             'discount' => 'nullable|numeric|min:0',
             'tax' => 'nullable|numeric|min:0',
-            'reference' => 'required|string|unique:sales', // Tambahkan validasi untuk 'unique_code'
             'cashier_id' => 'nullable|exists:users,id',
         ]);
 
@@ -95,7 +97,7 @@ class SalesController extends Controller
             $discount = $validated['discount'] ?? 0;
             $tax = $validated['tax'] ?? 0;
             $grandTotal = $total - $discount + $tax;
-            $uniqueCode = $validated['unique_code']?? null;
+            $uniqueCode = $validated['unique_code'] ?? null;
             $bayar = $validated['bayar'];
             $kembali = $validated['kembali']?? 0;
             $sales = Sales::create([
@@ -104,6 +106,8 @@ class SalesController extends Controller
                 'paid' => $validated['paid'],
                 'bayar' => $bayar,
                 'kembali' => $kembali,
+                'dp' => $validated['dp'] ?? 0,
+                'tempo' => $validated['tempo'] ?? 0,
                 'status' => 'completed',
                 'notes' => $validated['notes'] ?? null,
                 'payment_method' => $validated['payment_method'] ?? null,
@@ -113,7 +117,7 @@ class SalesController extends Controller
                 'unique_code' => $uniqueCode,
                 'cashier_id' => $validated['cashier_id'] ?? null,
                 'received' => ($validated['paid'] >= $grandTotal),
-                'total_received' => $validated['paid'],
+                'total_received' => $grandTotal,
             ]);
 
             foreach ($validated['items'] as $item) {
