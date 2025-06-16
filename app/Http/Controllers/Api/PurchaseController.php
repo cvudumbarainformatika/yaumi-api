@@ -195,31 +195,31 @@ class PurchaseController extends Controller
                         $purchaseItem = $purchase->items()->create($item);
 
                         // Update stok produk
-                        $product = Product::find($item['product_id']);
-                        if (!$product) {
-                            throw new \Exception("Produk dengan ID {$item['product_id']} tidak ditemukan.");
-                        }
+                        // $product = Product::find($item['product_id']);
+                        // if (!$product) {
+                        //     throw new \Exception("Produk dengan ID {$item['product_id']} tidak ditemukan.");
+                        // }
 
-                        $product->increment('stock', $item['qty']);
+                        // $product->increment('stock', $item['qty']);
 
-                        // Catat mutasi stok produk dengan metode createMutation
-                        $lastMutation = ProductStockMutation::getLastMutation($item['product_id']);
-                        $stockBefore = $lastMutation ? $lastMutation->stock_after : 0;
+                        // // Catat mutasi stok produk dengan metode createMutation
+                        // $lastMutation = ProductStockMutation::getLastMutation($item['product_id']);
+                        // $stockBefore = $lastMutation ? $lastMutation->stock_after : 0;
 
-                        $notes = !empty($po)
-                            ? 'Pembelian dari PO #' . $po->unique_code
-                            : 'Pembelian langsung tanpa PO';
+                        // $notes = !empty($po)
+                        //     ? 'Pembelian dari PO #' . $po->unique_code
+                        //     : 'Pembelian langsung tanpa PO';
 
-                        ProductStockMutation::createMutation([
-                            'product_id' => $item['product_id'],
-                            'mutation_type' => 'in',
-                            'qty' => $item['qty'],
-                            'stock_before' => $stockBefore,
-                            'stock_after' => $stockBefore + $item['qty'],
-                            'source_type' => 'purchase',
-                            'source_id' => $purchase->id,
-                            'notes' => $notes,
-                        ]);
+                        // ProductStockMutation::createMutation([
+                        //     'product_id' => $item['product_id'],
+                        //     'mutation_type' => 'in',
+                        //     'qty' => $item['qty'],
+                        //     'stock_before' => $stockBefore,
+                        //     'stock_after' => $stockBefore + $item['qty'],
+                        //     'source_type' => 'purchase',
+                        //     'source_id' => $purchase->id,
+                        //     'notes' => $notes,
+                        // ]);
 
                         // Update status item PO jika ada
                         if (!empty($item['purchase_order_item_id'])) {
@@ -239,33 +239,33 @@ class PurchaseController extends Controller
                         throw new \Exception("Supplier dengan ID {$supplier_id} tidak ditemukan.");
                     }
 
-                    $supplierDebt = $supplier->debt;
+                    // $supplierDebt = $supplier->debt;
 
-                    // Jika belum ada catatan hutang, buat baru
-                    if (!$supplierDebt && ($total - $validated['paid'] > 0)) {
-                        $supplierDebt = $supplier->debt()->create([
-                            'initial_amount' => 0,
-                            'current_amount' => 0, // Akan diupdate oleh createHistory
-                            'notes' => 'Hutang dari pembelian #' . $purchase->unique_code
-                        ]);
-                    }
+                    // // Jika belum ada catatan hutang, buat baru
+                    // if (!$supplierDebt && ($total - $validated['paid'] > 0)) {
+                    //     $supplierDebt = $supplier->debt()->create([
+                    //         'initial_amount' => 0,
+                    //         'current_amount' => 0, // Akan diupdate oleh createHistory
+                    //         'notes' => 'Hutang dari pembelian #' . $purchase->unique_code
+                    //     ]);
+                    // }
 
                     // Catat histori hutang supplier jika ada hutang
-                    if ($supplierDebt && ($total - $validated['paid'] > 0)) {
-                        $notes = !empty($po)
-                            ? 'Pembelian dari PO #' . $po->unique_code
-                            : 'Pembelian langsung tanpa PO';
+                    // if ($supplierDebt && ($total - $validated['paid'] > 0)) {
+                    //     $notes = !empty($po)
+                    //         ? 'Pembelian dari PO #' . $po->unique_code
+                    //         : 'Pembelian langsung tanpa PO';
 
-                        // Gunakan createHistory untuk konsistensi dengan running balance
-                        SupplierDebtHistory::createHistory([
-                            'supplier_debt_id' => $supplierDebt->id,
-                            'mutation_type' => 'increase',
-                            'amount' => $total - $validated['paid'],
-                            'source_type' => 'purchase',
-                            'source_id' => $purchase->id,
-                            'notes' => $notes,
-                        ]);
-                    }
+                    //     // Gunakan createHistory untuk konsistensi dengan running balance
+                    //     SupplierDebtHistory::createHistory([
+                    //         'supplier_debt_id' => $supplierDebt->id,
+                    //         'mutation_type' => 'increase',
+                    //         'amount' => $total - $validated['paid'],
+                    //         'source_type' => 'purchase',
+                    //         'source_id' => $purchase->id,
+                    //         'notes' => $notes,
+                    //     ]);
+                    // }
 
                     // Setelah semua item pembelian diproses
                     if (!empty($po)) {

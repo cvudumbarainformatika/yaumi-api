@@ -52,6 +52,9 @@ Route::prefix('v1')->group(function () {
         Route::apiResource('purchases', \App\Http\Controllers\Api\PurchaseController::class);
         Route::post('/sales', [SalesController::class, 'store']);
     });
+
+    // Tambahkan route untuk sales
+    Route::apiResource('sales', \App\Http\Controllers\Api\SalesController::class);
 });
 
 // Route::prefix('v1')->middleware(['prevent-duplicate'])->group(function () {

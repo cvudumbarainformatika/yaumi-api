@@ -25,7 +25,7 @@ class ProductStockMutation extends Model
     {
         return $this->belongsTo(Product::class);
     }
-    
+
     /**
      * Mendapatkan mutasi stok terakhir untuk produk tertentu
      */
@@ -35,7 +35,7 @@ class ProductStockMutation extends Model
             ->orderBy('id', 'desc')
             ->first();
     }
-    
+
     /**
      * Membuat mutasi stok baru dengan running balance dan penanganan konkurensi
      */
@@ -45,27 +45,27 @@ class ProductStockMutation extends Model
         return DB::transaction(function () use ($data) {
             // Lock baris produk untuk mencegah konkurensi
             $product = Product::lockForUpdate()->findOrFail($data['product_id']);
-            
+
             // Ambil mutasi terakhir dengan locking
             $lastMutation = self::where('product_id', $data['product_id'])
                 ->orderBy('id', 'desc')
                 ->lockForUpdate()
                 ->first();
-            
+
             $stockBefore = $lastMutation ? $lastMutation->stock_after : 0;
-            
+
             // Hitung stok setelah mutasi
             $stockAfter = $stockBefore;
             if ($data['mutation_type'] === 'in') {
                 $stockAfter += $data['qty'];
             } else {
                 // Validasi stok cukup untuk pengurangan
-                if ($stockAfter < $data['qty']) {
-                    throw new \Exception("Stok tidak cukup untuk produk ID: {$data['product_id']}");
-                }
+                // if ($stockAfter < $data['qty']) {
+                //     throw new \Exception("Stok tidak cukup untuk produk ID: {$data['product_id']}");
+                // }
                 $stockAfter -= $data['qty'];
             }
-            
+
             // Buat mutasi baru dengan stok awal dan akhir
             $mutation = self::create([
                 'product_id' => $data['product_id'],
@@ -77,10 +77,10 @@ class ProductStockMutation extends Model
                 'source_id' => $data['source_id'],
                 'notes' => $data['notes'],
             ]);
-            
+
             // Update stok produk
             $product->update(['stock' => $stockAfter]); // Ubah dari 'stok' menjadi 'stock'
-            
+
             return $mutation;
         }, 5); // Retry 5 kali jika terjadi deadlock
     }

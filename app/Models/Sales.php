@@ -10,22 +10,26 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Sales extends Model
 {
     use HasFactory;
+    protected $table = 'sales';
+    protected $guarded = ['id'];
 
-    protected $fillable = [
-        'customer_id',
-        'unique_code',
-        'total',
-        'paid',
-        'status',
-        'notes',
-        'payment_method',
-        'discount',
-        'tax',
-        'reference',
-        'cashier_id',
-        'received',
-        'total_received',
-    ];
+    // protected $fillable = [
+    //     'customer_id',
+    //     'unique_code',
+    //     'total',
+    //     'paid',
+    //     'bayar',
+    //     'kembali',
+    //     'status',
+    //     'notes',
+    //     'payment_method',
+    //     'discount',
+    //     'tax',
+    //     'reference',
+    //     'cashier_id',
+    //     'received',
+    //     'total_received',
+    // ];
 
     public function customer(): BelongsTo
     {

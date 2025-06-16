@@ -17,24 +17,24 @@ class SupplierController extends Controller
         $sortBy = $request->input('sort_by', 'created_at');
         $sortDirection = $request->input('sort_direction', 'desc');
         $query = $request->input('q', '');
-        
+
         $suppliersQuery = Supplier::query();
-        
+
         // Apply search if query parameter exists
         if (!empty($query)) {
             $suppliersQuery->where('name', 'like', "%{$query}%")
                 ->orWhere('phone', 'like', "%{$query}%");
         }
-        
+
         // Apply sorting
         $suppliersQuery->orderBy($sortBy, $sortDirection);
-        
+
         // Muat relasi hutang
         $suppliersQuery->with('debt');
-        
+
         // Get paginated results
         $suppliers = $suppliersQuery->simplePaginate($perPage, ['*'], 'page', $page);
-        
+
         return response()->json($suppliers);
     }
 
@@ -56,19 +56,19 @@ class SupplierController extends Controller
             'current_amount' => $validated['initial_amount'] ?? 0,
             'notes' => $validated['debt_notes'] ?? null,
         ];
-        
+
         // Hapus field hutang dari data supplier
         unset($validated['initial_amount'], $validated['debt_notes']);
 
         // Buat supplier
         $supplier = Supplier::create($validated);
-        
+
         // Buat catatan hutang terkait
         $supplier->debt()->create($debtData);
-        
+
         // Muat relasi hutang untuk respons
         $supplier->load('debt');
-        
+
         Cache::forget('suppliers');
         return response()->json($supplier, 201);
     }
@@ -99,12 +99,12 @@ class SupplierController extends Controller
             $debtData['initial_amount'] = $validated['initial_amount'];
             unset($validated['initial_amount']);
         }
-        
+
         if (isset($validated['current_amount'])) {
             $debtData['current_amount'] = $validated['current_amount'];
             unset($validated['current_amount']);
         }
-        
+
         if (isset($validated['debt_notes'])) {
             $debtData['notes'] = $validated['debt_notes'];
             unset($validated['debt_notes']);
@@ -112,7 +112,7 @@ class SupplierController extends Controller
 
         // Update data supplier
         $supplier->update($validated);
-        
+
         // Update atau buat data hutang
         if (!empty($debtData)) {
             if ($supplier->debt) {
@@ -121,10 +121,10 @@ class SupplierController extends Controller
                 $supplier->debt()->create($debtData);
             }
         }
-        
+
         // Muat relasi hutang untuk respons
         $supplier->load('debt');
-        
+
         Cache::forget('suppliers');
         return response()->json($supplier);
     }
@@ -147,7 +147,7 @@ class SupplierController extends Controller
 
         $query = $validated['q'] ?? '';
         $perPage = $validated['per_page'] ?? 10;
-        
+
         $searchQuery = Supplier::search($query);
 
         if (!empty($validated['sort_by'])) {
@@ -158,4 +158,5 @@ class SupplierController extends Controller
         $results = $searchQuery->paginate($perPage);
         return response()->json($results);
     }
+
 }

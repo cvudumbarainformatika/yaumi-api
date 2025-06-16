@@ -81,7 +81,8 @@ services:
             MYSQL_USER: ${DB_USERNAME}
         volumes:
             - dbdata:/var/lib/mysql/
-            - ./docker-compose/mysql/my.conf:/etc/mysql/my.conf
+            - ./docker-compose/mysql/my.cnf:/etc/mysql/conf.d/my.cnf
+            # - ./docker-compose/mysql/my.conf:/etc/mysql/my.conf
         networks:
             - ryuuunet
         healthcheck:

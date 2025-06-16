@@ -88,6 +88,8 @@ default
   "unique_code": "INV-20240611-001",
   "total": 150000,
   "paid": 150000,
+  "bayar": 200000,
+  "kembali": 50000,
   "status": "paid",
   "notes": "Pembelian tunai",
   "payment_method": "cash",
