@@ -2,6 +2,7 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\CustomerController;
@@ -25,36 +26,55 @@ Route::get('/test', function () {
 
 // API Routes
 Route::prefix('v1')->group(function () {
-    // Products Routes
-    Route::get('products/search', [ProductController::class, 'search'])->name('products.search');
-    Route::apiResource('products', ProductController::class)->names('products');
 
-    // Categories Routes
-    Route::apiResource('categories', CategoryController::class)->names('categories');
 
-    // Satuan Routes
-    Route::apiResource('satuans', SatuanController::class)->names('satuans');
+    Route::post('/login', [AuthController::class, 'login']);
 
-    // Supplier Routes
-    Route::get('suppliers/search', [SupplierController::class, 'search'])->name('suppliers.search');
-    Route::apiResource('suppliers', SupplierController::class)->names('suppliers');
-    // Tambahkan route untuk Customer
-    Route::get('customers/search', [CustomerController::class, 'search'])->name('customers.search');
-    Route::apiResource('customers', \App\Http\Controllers\Api\CustomerController::class);
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::get('/profile', [AuthController::class, 'profile']);
+        Route::post('/logout', [AuthController::class, 'logout']);
 
-    // Tambahkan route untuk Purchase Order dan Purchase
-    Route::apiResource('purchase-orders', \App\Http\Controllers\Api\PurchaseOrderController::class);
-    Route::put('purchase-orders/{id}/status', [\App\Http\Controllers\Api\PurchaseOrderController::class, 'updateStatus']);
-    Route::put('purchase-orders/{id}/receive', [\App\Http\Controllers\Api\PurchaseOrderController::class, 'receiveItems']);
 
-    // Tambahkan route untuk Sales Order dan Sales
-    Route::middleware(['prevent-duplicate'])->group(function () {
-        Route::apiResource('purchases', \App\Http\Controllers\Api\PurchaseController::class);
-        Route::post('/sales', [SalesController::class, 'store']);
+
+        // Products Routes
+        Route::apiResource('products', ProductController::class)->names('products');
+        Route::get('products/search', [ProductController::class, 'search'])->name('products.search');
+
+        // Categories Routes
+        Route::apiResource('categories', CategoryController::class)->names('categories');
+
+        // Satuan Routes
+        Route::apiResource('satuans', SatuanController::class)->names('satuans');
+
+        // Supplier Routes
+        Route::apiResource('suppliers', SupplierController::class)->names('suppliers');
+        Route::get('suppliers/search', [SupplierController::class, 'search'])->name('suppliers.search');
+
+        
+        // Tambahkan route untuk Customer
+        Route::apiResource('customers', CustomerController::class)->names('customers');
+        Route::get('customers/search', [CustomerController::class, 'search'])->name('customers.search');
+
+        // Tambahkan route untuk Purchase Order dan Purchase
+        Route::apiResource('purchase-orders', \App\Http\Controllers\Api\PurchaseOrderController::class);
+        Route::put('purchase-orders/{id}/status', [\App\Http\Controllers\Api\PurchaseOrderController::class, 'updateStatus']);
+        Route::put('purchase-orders/{id}/receive', [\App\Http\Controllers\Api\PurchaseOrderController::class, 'receiveItems']);
+
+        // Tambahkan route untuk Sales Order dan Sales
+        Route::middleware(['prevent-duplicate'])->group(function () {
+            Route::apiResource('purchases', \App\Http\Controllers\Api\PurchaseController::class);
+            Route::post('/sales', [SalesController::class, 'store']);
+        });
+
+        // Tambahkan route untuk sales
+        Route::apiResource('sales', \App\Http\Controllers\Api\SalesController::class);
+
+
     });
 
-    // Tambahkan route untuk sales
-    Route::apiResource('sales', \App\Http\Controllers\Api\SalesController::class);
+
+
+    
 });
 
 // Route::prefix('v1')->middleware(['prevent-duplicate'])->group(function () {

@@ -13,8 +13,8 @@ return new class extends Migration
     {
         Schema::table('sales', function (Blueprint $table) {
             // Tambah field bayar (jumlah uang yang dibayarkan customer)
-            $table->decimal('dp', 15, 2)->default(0)->after('kembali');
-            $table->integer('tempo')->nullable()->after('dp');
+            // $table->decimal('dp', 15, 2)->default(0)->after('kembali');
+            // $table->integer('tempo')->nullable()->after('dp');
         });
     }
 
@@ -24,7 +24,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('sales', function (Blueprint $table) {
-            $table->dropColumn(['dp', 'tempo']);
+            // $table->dropColumn(['tempo']);
         });
     }
 };

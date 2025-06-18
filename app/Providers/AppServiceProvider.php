@@ -23,7 +23,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        Purchase::observe(PurchaseObserver::class);
+        // Purchase::observe(PurchaseObserver::class);
 
         // Log semua deadlock dan lock timeout
         DB::listen(function ($query) {

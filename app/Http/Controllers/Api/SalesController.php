@@ -5,10 +5,6 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Sales;
 use App\Models\SalesItem;
-use App\Models\Product;
-use App\Models\ProductStockMutation;
-use App\Models\CustomerReceivable;
-use App\Models\CustomerReceivableHistory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -34,6 +30,13 @@ class SalesController extends Controller
                             ->where('customers.name', 'like', "%{$search}%");
                   });
             });
+        }
+
+        // Filter berdasarkan customer_id
+        if ($request->filled('status') && !empty($request->status)) {
+            if ($request->status !== 'semua') {
+                $query->where('sales.payment_method', '=', $request->status);
+            }
         }
 
         if ($request->filled('start_date') && $request->filled('end_date')) {

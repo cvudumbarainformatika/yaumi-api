@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Traits\LogsActivity;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Category extends Model
 {
+    // use LogsActivity;
+
     protected $guarded = ['id'];
 
     protected $hidden = [

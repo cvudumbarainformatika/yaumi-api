@@ -7,6 +7,7 @@ use App\Models\Customer;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 
 class CustomerController extends Controller
 {
@@ -79,7 +80,7 @@ class CustomerController extends Controller
         return response()->json($customer);
     }
 
-    public function update(Request $request, Customer $customer): JsonResponse
+    public function update(Request $request, $id): JsonResponse
     {
         $validated = $request->validate([
             'name' => 'sometimes|string',
@@ -91,6 +92,16 @@ class CustomerController extends Controller
             'current_amount' => 'nullable|numeric|min:0',
             'receivable_notes' => 'nullable|string'
         ]);
+
+
+        $customer = Customer::findOrFail($id);
+
+        // return response()->json([
+        //     'raw' => $customer,
+        //     'array' => $customer->toArray(),
+        //     'id' => $customer->id,
+        //     'name' => $customer->name,
+        // ]);
 
         // Ekstrak data piutang dari input yang divalidasi
         $receivableData = [];
@@ -109,15 +120,25 @@ class CustomerController extends Controller
             unset($validated['receivable_notes']);
         }
 
+        // Log::info('DEBUG create receivable', [
+        //     'customer_id' => $customer->id,
+        //     'has_receivable' => (bool) $customer->receivable,
+        //     'data' => $receivableData,
+        // ]);
+
         // Update data customer
         $customer->update($validated);
+
+
 
         // Update atau buat data piutang
         if (!empty($receivableData)) {
             if ($customer->receivable) {
                 $customer->receivable->update($receivableData);
             } else {
-                $customer->receivable()->create($receivableData);
+                $customer->receivable()->create(array_merge($receivableData, [
+                    'customer_id' => $customer->id,
+                ]));
             }
         }
 
