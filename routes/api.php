@@ -37,8 +37,8 @@ Route::prefix('v1')->group(function () {
 
 
         // Products Routes
-        Route::apiResource('products', ProductController::class)->names('products');
         Route::get('products/search', [ProductController::class, 'search'])->name('products.search');
+        Route::apiResource('products', ProductController::class)->names('products');
 
         // Categories Routes
         Route::apiResource('categories', CategoryController::class)->names('categories');
@@ -47,13 +47,13 @@ Route::prefix('v1')->group(function () {
         Route::apiResource('satuans', SatuanController::class)->names('satuans');
 
         // Supplier Routes
-        Route::apiResource('suppliers', SupplierController::class)->names('suppliers');
         Route::get('suppliers/search', [SupplierController::class, 'search'])->name('suppliers.search');
+        Route::apiResource('suppliers', SupplierController::class)->names('suppliers');
 
         
         // Tambahkan route untuk Customer
-        Route::apiResource('customers', CustomerController::class)->names('customers');
         Route::get('customers/search', [CustomerController::class, 'search'])->name('customers.search');
+        Route::apiResource('customers', CustomerController::class)->names('customers');
 
         // Tambahkan route untuk Purchase Order dan Purchase
         Route::apiResource('purchase-orders', \App\Http\Controllers\Api\PurchaseOrderController::class);
