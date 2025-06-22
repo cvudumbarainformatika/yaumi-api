@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\CustomerController;
 use App\Http\Controllers\Api\PurchaseController;
+use App\Http\Controllers\Api\ReturnPenjualanController;
 use App\Http\Controllers\Api\SalesController;
 use App\Http\Controllers\Api\SatuanController;
 use App\Http\Controllers\Api\SupplierController;
@@ -68,6 +69,13 @@ Route::prefix('v1')->group(function () {
 
         // Tambahkan route untuk sales
         Route::apiResource('sales', \App\Http\Controllers\Api\SalesController::class);
+
+
+        Route::prefix('return-penjualan')->controller(ReturnPenjualanController::class)->group(function () {
+            Route::get('/', 'index');
+            Route::post('/', 'store');
+            // Route::get('{id}', 'show');
+        });
 
 
     });
