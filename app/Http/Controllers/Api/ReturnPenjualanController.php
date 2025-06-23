@@ -18,8 +18,9 @@ class ReturnPenjualanController extends Controller
     {
         // return ReturnPenjualan::with('customer', 'items.product', 'penjualan')->latest()->simplePaginate(20);
         $query = ReturnPenjualan::query()
-        ->select('return_penjualans.*', 'customers.name as customer_name')
+        ->select('return_penjualans.*', 'customers.name as customer_name', 'users.name as user_name')
         ->leftJoin('customers', 'return_penjualans.customer_id', '=', 'customers.id')
+        ->leftJoin('users', 'return_penjualans.user_id', '=', 'users.id')
         ->with(['customer', 'items.product', 'penjualan']);
 
         // 🔍 Filter pencarian global
@@ -28,12 +29,7 @@ class ReturnPenjualanController extends Controller
 
             $query->where(function($q) use ($search) {
                 $q->where('return_penjualans.unique_code', 'like', "%{$search}%")
-                ->orWhereExists(function ($subquery) use ($search) {
-                    $subquery->select(DB::raw(1))
-                        ->from('customers')
-                        ->whereColumn('customers.id', 'return_penjualans.customer_id')
-                        ->where('customers.name', 'like', "%{$search}%");
-                });
+                ->orWhere('customers.name', 'like', "%{$search}%");
             });
         }
 
@@ -80,14 +76,15 @@ class ReturnPenjualanController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'tanggal' => 'required|date',
-            'customer_id' => 'nullable|exists:customers,id',
-            'sales_id' => 'nullable|string',
+            'nota' => 'nullable|string',
+            'customer_id' => 'nullable',
+            'sales_id' => 'nullable',
             'keterangan' => 'nullable|string',
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'required|exists:products,id',
             'items.*.qty' => 'required|numeric|min:0.01',
             'items.*.harga' => 'required|numeric|min:0',
+            'items.*.subtotal' => 'required|numeric|min:0',
             'items.*.status' => 'nullable|string',
         ]);
 
@@ -102,7 +99,8 @@ class ReturnPenjualanController extends Controller
 
             $retur = ReturnPenjualan::create([
                 'unique_code' => $kode,
-                'tanggal' => $data['tanggal'],
+                'nota' => $data['nota'] ?? null,
+                'tanggal' => date('Y-m-d H:i:s'),
                 'customer_id' => $data['customer_id'],
                 'sales_id' => $data['sales_id'],
                 'user_id' => Auth::id(),
@@ -115,7 +113,7 @@ class ReturnPenjualanController extends Controller
                     'product_id' => $item['product_id'],
                     'qty' => $item['qty'],
                     'harga' => $item['harga'],
-                    'subtotal' => $item['qty'] * $item['harga'],
+                    'subtotal' => $item['subtotal'],
                     'status'=> $item['status']
                 ]);
             }

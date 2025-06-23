@@ -68,7 +68,8 @@ Route::prefix('v1')->group(function () {
         });
 
         // Tambahkan route untuk sales
-        Route::apiResource('sales', \App\Http\Controllers\Api\SalesController::class);
+        Route::get('sales/search', [SalesController::class, 'search'])->name('sales.search');
+        Route::apiResource('sales', \App\Http\Controllers\Api\SalesController::class)->names('sales');
 
 
         Route::prefix('return-penjualan')->controller(ReturnPenjualanController::class)->group(function () {

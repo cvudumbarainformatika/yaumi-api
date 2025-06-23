@@ -23,12 +23,7 @@ class SalesController extends Controller
             $search = $request->q;
             $query->where(function($q) use ($search) {
                 $q->where('sales.unique_code', 'like', "%{$search}%")
-                  ->orWhereExists(function ($query) use ($search) {
-                      $query->select(DB::raw(1))
-                            ->from('customers')
-                            ->whereColumn('customers.id', 'sales.customer_id')
-                            ->where('customers.name', 'like', "%{$search}%");
-                  });
+                  ->orWhere('customers.name', 'like', "%{$search}%");
             });
         }
 
@@ -68,6 +63,63 @@ class SalesController extends Controller
 
         return response()->json($data);
 
+    }
+
+    public function search(Request $request)
+    {
+        $search = $request->input('q');
+        $perPage = $request->input('per_page', 10);
+        $page = $request->input('page', 1);
+        $offset = ($page - 1) * $perPage;
+
+        // Base query reuseable
+        $baseQuery = function ($q) use ($search) {
+            $q->leftJoin('customers', 'sales.customer_id', '=', 'customers.id')
+            ->leftJoin('sales_items', 'sales.id', '=', 'sales_items.sales_id')
+            ->leftJoin('products', 'sales_items.product_id', '=', 'products.id')
+            ->when($search, function ($q) use ($search) {
+                $q->where(function ($q) use ($search) {
+                    $q->where('sales.unique_code', 'like', "%{$search}%")
+                        ->orWhere('customers.name', 'like', "%{$search}%")
+                        ->orWhere('products.name', 'like', "%{$search}%");
+                });
+            });
+        };
+
+        // Count total unique sales.id
+        $totalCount = DB::table('sales')
+            ->when(true, $baseQuery)
+            ->distinct('sales.id')
+            ->count('sales.id');
+
+        // Get paginated data
+        $query = Sales::query()
+            ->select(
+                'sales.*',
+                'customers.name as customer_name'
+            )
+            ->when(true, $baseQuery)
+            ->with(['customer', 'items.product', 'return.items.product'])
+            ->groupBy('sales.id', 'sales.unique_code', 'sales.created_at', 'sales.status', 'customers.name')
+            ->orderByDesc('sales.created_at')
+            ->offset($offset)
+            ->limit($perPage);
+
+        $sales = $query->get();
+
+        return response()->json([
+            'data' => $sales,
+            'meta' => [
+                'current_page' => (int) $page,
+                'per_page' => (int) $perPage,
+                'total' => (int) $totalCount,
+                'last_page' => ceil($totalCount / $perPage),
+                'from' => $offset + 1,
+                'to' => $offset + $sales->count(),
+                'prev' => $page > 1 ? $page - 1 : null,
+                'next' => ($offset + $sales->count()) < $totalCount ? $page + 1 : null,
+            ]
+        ]);
     }
 
     public function store(Request $request)

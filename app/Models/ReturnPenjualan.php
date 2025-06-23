@@ -24,6 +24,11 @@ class ReturnPenjualan extends Model
     {
         return $this->belongsTo(Customer::class);
     }
+
+    public function user()
+    {
+       return $this->belongsTo(User::class);
+    }
     public function penjualan()
     {
         return $this->belongsTo(Sales::class);
