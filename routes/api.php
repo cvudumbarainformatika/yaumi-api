@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\CustomerController;
 use App\Http\Controllers\Api\PurchaseController;
+use App\Http\Controllers\Api\ReturnPembelianController;
 use App\Http\Controllers\Api\ReturnPenjualanController;
 use App\Http\Controllers\Api\SalesController;
 use App\Http\Controllers\Api\SatuanController;
@@ -63,19 +64,30 @@ Route::prefix('v1')->group(function () {
 
         // Tambahkan route untuk Sales Order dan Sales
         Route::middleware(['prevent-duplicate'])->group(function () {
-            Route::apiResource('purchases', \App\Http\Controllers\Api\PurchaseController::class);
-            Route::post('/sales', [SalesController::class, 'store']);
+            Route::get('purchases/search', [PurchaseController::class, 'search'])->name('purchases.search');
+            Route::apiResource('purchases', \App\Http\Controllers\Api\PurchaseController::class)->names('purchases');
+
+
+            // Tambahkan route untuk sales
+            Route::get('sales/search', [SalesController::class, 'search'])->name('sales.search');
+            Route::apiResource('sales', SalesController::class)->names('sales');
         });
 
-        // Tambahkan route untuk sales
-        Route::get('sales/search', [SalesController::class, 'search'])->name('sales.search');
-        Route::apiResource('sales', \App\Http\Controllers\Api\SalesController::class)->names('sales');
+
+        // Route::apiResource('sales', \App\Http\Controllers\Api\SalesController::class)->names('sales');
 
 
         Route::prefix('return-penjualan')->controller(ReturnPenjualanController::class)->group(function () {
             Route::get('/', 'index');
             Route::post('/', 'store');
             // Route::get('{id}', 'show');
+        });
+
+
+        Route::prefix('return-pembelian')->controller(ReturnPembelianController::class)->group(function () {
+            Route::get('/', 'index');
+            Route::post('/', 'store');
+            Route::get('{id}', 'show');
         });
 
 
