@@ -153,6 +153,14 @@ return [
                     'name', 'created_at', 'updated_at', 'stock',
                     'hargajual', 'hargajualcust', 'hargajualantar'
                 ],
+                'typoTolerance' => [ // ⛔ Tidak akan terbaca oleh Scout, hanya dokumentasi
+                    'enabled' => false,
+                    // 'disableOnAttributes' => ['barcode'],
+                    // 'minWordSizeForTypos' => [
+                    //     'oneTypo' => 5,
+                    //     'twoTypos' => 9,
+                    // ]
+                ],
             ],
         ],
     ],

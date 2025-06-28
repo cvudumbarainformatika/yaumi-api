@@ -3,15 +3,20 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\CashFlowController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\CustomerController;
+use App\Http\Controllers\Api\KasController;
+use App\Http\Controllers\Api\PembayaranHutangController;
+use App\Http\Controllers\Api\PembayaranPiutangController;
 use App\Http\Controllers\Api\PurchaseController;
 use App\Http\Controllers\Api\ReturnPembelianController;
 use App\Http\Controllers\Api\ReturnPenjualanController;
 use App\Http\Controllers\Api\SalesController;
 use App\Http\Controllers\Api\SatuanController;
 use App\Http\Controllers\Api\SupplierController;
+use App\Http\Controllers\Api\UsersController;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -89,6 +94,51 @@ Route::prefix('v1')->group(function () {
             Route::post('/', 'store');
             Route::get('{id}', 'show');
         });
+
+        Route::prefix('pembayaran-hutang')->controller(PembayaranHutangController::class)->group(function () {
+            Route::get('/search', 'search');
+            Route::get('/', 'index');
+            Route::post('/', 'store');
+            Route::get('{id}', 'show');
+        });
+
+        Route::prefix('pembayaran-piutang')->controller(PembayaranPiutangController::class)->group(function () {
+            Route::get('/search', 'search');
+            Route::get('/', 'index');
+            Route::post('/', 'store');
+            Route::get('{id}', 'show');
+        });
+
+        Route::prefix('kas')->group(function () {
+            Route::get('/', [KasController::class, 'index']);
+            Route::post('/', [KasController::class, 'store']);
+            Route::get('{id}', [KasController::class, 'show']);
+            Route::put('{id}', [KasController::class, 'update']);
+            Route::delete('{id}', [KasController::class, 'destroy']);
+        });
+        Route::prefix('users')->group(function () {
+            Route::get('/', [UsersController::class, 'index']);
+            Route::post('/', [UsersController::class, 'store']);
+            Route::get('{id}', [UsersController::class, 'show']);
+            Route::put('{id}', [UsersController::class, 'update']);
+            Route::delete('{id}', [UsersController::class, 'destroy']);
+        });
+
+
+        Route::prefix('cash-flows')->group(function () {
+            Route::get('/', [CashFlowController::class, 'index']);
+            Route::post('/', [CashFlowController::class, 'store']);
+            Route::get('{id}', [CashFlowController::class, 'show']);
+        });
+
+
+        Route::prefix('reports')->group(function () {
+            // penjualan
+            Route::get('/sales', [SalesController::class, 'report']);
+            Route::get('/sales/summary', [SalesController::class, 'rekap']);
+        });
+
+        
 
 
     });

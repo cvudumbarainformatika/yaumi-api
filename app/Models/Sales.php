@@ -45,4 +45,8 @@ class Sales extends Model
     {
         return $this->hasMany(SalesItem::class);
     }
+    public function ppd(): HasMany
+    {
+        return $this->hasMany(PembayaranPiutangDetail::class, 'sale_id');
+    }
 }

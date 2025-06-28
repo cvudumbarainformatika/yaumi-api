@@ -61,7 +61,14 @@ meili_status:
 	docker compose exec meilisearch meilisearch --version
 
 meili_index:
-	docker compose exec app php artisan scout:import "App\Models\Product" && docker compose exec app php artisan scout:import "App\Models\Supplier"
+	@echo "🔄 Flushing and re-importing Product & Supplier indexes..."
+	docker compose exec app php artisan scout:flush 'App\Models\Product'
+	docker compose exec app php artisan scout:import 'App\Models\Product'
+	docker compose exec app php artisan scout:flush 'App\Models\Supplier'
+	docker compose exec app php artisan scout:import 'App\Models\Supplier'
+	@echo "⚙️  Disabling typo tolerance for Product index..."
+	docker compose exec app php artisan meili:disable-typo
+	@echo "✅ MeiliSearch reindex & typo tolerance update complete."
 
 meili_flush:
 	docker compose exec app php artisan scout:flush "App\Models\Product" && docker compose exec app php artisan scout:flush "App\Models\Supplier"

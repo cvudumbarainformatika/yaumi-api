@@ -234,4 +234,91 @@ class SalesController extends Controller
     }
 
     // Tambahkan method lain seperti show, index, cancel, dsb sesuai kebutuhan
+    public function report(Request $request)
+    {
+        $page = (int) $request->input('page', 1);
+        $perPage = (int) $request->input('per_page', 15);
+        $offset = ($page - 1) * $perPage;
+
+        $query = Sales::query()
+            ->select(
+                'sales.id',
+                'sales.unique_code',
+                'sales.total',
+                'sales.discount',
+                'sales.tax',
+                'sales.paid',
+                'sales.bayar',
+                'sales.kembali',
+                'sales.dp',
+                'sales.payment_method',
+                'sales.status',
+                'sales.created_at',
+                'customers.name as customer_name',
+                'cashiers.name as cashier_name'
+            )
+            ->leftJoin('customers', 'sales.customer_id', '=', 'customers.id')
+            ->leftJoin('users as cashiers', 'sales.cashier_id', '=', 'cashiers.id')
+            ->when($request->filled('q'), function ($q) use ($request) {
+                $search = $request->q;
+                $q->where(function ($sub) use ($search) {
+                    $sub->where('sales.unique_code', 'like', "%{$search}%")
+                        ->orWhere('customers.name', 'like', "%{$search}%")
+                        ->orWhere('cashiers.name', 'like', "%{$search}%");
+                });
+            })
+            ->when($request->filled('start_date') && $request->filled('end_date'), function ($q) use ($request) {
+                $q->whereBetween('sales.created_at', [$request->start_date, $request->end_date]);
+            })
+            ->orderByDesc('sales.created_at');
+
+        $total = (clone $query)->count();
+
+        $sales = $query
+            ->offset($offset)
+            ->limit($perPage)
+            ->get();
+
+        return response()->json([
+            'data' => $sales,
+            'meta' => [
+                'current_page' => $page,
+                'per_page' => $perPage,
+                'total' => $total,
+                'last_page' => ceil($total / $perPage),
+                'from' => $offset + 1,
+                'to' => $offset + $sales->count(),
+                'prev' => $page > 1 ? $page - 1 : null,
+                'next' => ($offset + $sales->count()) < $total ? $page + 1 : null,
+            ]
+        ]);
+    }
+
+    public function rekap(Request $request)
+    {
+       $query = Sales::query()
+        ->leftJoin('customers', 'sales.customer_id', '=', 'customers.id')
+        ->leftJoin('users as cashiers', 'sales.cashier_id', '=', 'cashiers.id')
+        ->when($request->filled('q'), function ($q) use ($request) {
+            $search = $request->q;
+            $q->where(function ($sub) use ($search) {
+                $sub->where('sales.unique_code', 'like', "%{$search}%")
+                    ->orWhere('customers.name', 'like', "%{$search}%")
+                    ->orWhere('cashiers.name', 'like', "%{$search}%");
+            });
+        })
+        ->when($request->filled('start_date') && $request->filled('end_date'), function ($q) use ($request) {
+            $q->whereBetween('sales.created_at', [$request->start_date, $request->end_date]);
+        });
+
+        $summary = $query->selectRaw('
+            COUNT(sales.id) as jumlah_transaksi,
+            SUM(sales.total) as total_penjualan,
+            SUM(sales.discount) as total_diskon,
+            SUM(sales.tax) as total_pajak,
+            SUM(sales.paid) as total_dibayar
+        ')->first();
+
+        return response()->json($summary);
+    }
 }
