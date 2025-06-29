@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Traits\LogsActivity;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
@@ -9,7 +10,7 @@ use Laravel\Scout\Searchable;
 
 class Product extends Model
 {
-    use Searchable;
+    use Searchable, LogsActivity;
 
     protected $fillable = [
         'name',

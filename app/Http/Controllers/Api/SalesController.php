@@ -124,12 +124,16 @@ class SalesController extends Controller
 
     public function store(Request $request)
     {
+
+        // return $request->all();
+
         $validated = $request->validate([
             'unique_code' => 'required|string|unique:sales', // Tambahkan validasi untuk 'unique_code'
             'reference' => 'required|string|unique:sales', // Tambahkan validasi untuk 'unique_code'
             'customer_id' => 'nullable|exists:customers,id',
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'required|exists:products,id',
+            'items.*.harga_modal' => 'required|integer|min:0',
             'items.*.qty' => 'required|integer|min:1',
             'items.*.price' => 'required|numeric|min:0',
             'paid' => 'required|numeric|min:0',
@@ -179,55 +183,13 @@ class SalesController extends Controller
                 SalesItem::create([
                     'sales_id' => $sales->id,
                     'product_id' => $item['product_id'],
+                    'harga_modal' => $item['harga_modal'],
                     'qty' => $item['qty'],
                     'price' => $item['price'],
                     'subtotal' => $item['qty'] * $item['price'],
                 ]);
-                // // Mutasi stok keluar dengan running balance
-                // $lastMutation = ProductStockMutation::getLastMutation($item['product_id']);
-                // $stockBefore = $lastMutation ? $lastMutation->stock_after : 0;
-
-                // Validasi stok cukup
-                // if ($stockBefore < $item['qty']) {
-                //     throw new \Exception("Stok tidak cukup untuk produk ID: {$item['product_id']}");
-                // }
-
-                // $stockAfter = $stockBefore - $item['qty'];
-
-                // ProductStockMutation::createMutation([
-                //     'product_id' => $item['product_id'],
-                //     'mutation_type' => 'out',
-                //     'qty' => $item['qty'],
-                //     'stock_before' => $stockBefore,
-                //     'stock_after' => $stockAfter,
-                //     'source_type' => 'sales',
-                //     'source_id' => $sales->id,
-                //     'notes' => 'Penjualan',
-                // ]);
-
-                // Update stok produk
-                // $product = Product::find($item['product_id']);
-                // $product->update([
-                //     'stock' => ProductStockMutation::getLastMutation($item['product_id'])->stock_after
-                // ]);
             }
 
-            // Piutang customer
-            // $piutang = $grandTotal - $validated['paid'];
-            // if ($piutang > 0 && $validated['payment_method' === 'kredit']) {
-            //     $receivable = CustomerReceivable::firstOrCreate(
-            //         ['customer_id' => $validated['customer_id']],
-            //         ['initial_amount' => 0, 'current_amount' => 0]
-            //     );
-            //         $receivable->increment('current_amount', $piutang);
-            //     CustomerReceivableHistory::create([
-            //         'customer_id' => $validated['customer_id'],
-            //         'sales_id' => $sales->id,
-            //         'type' => 'sales',
-            //         'amount' => $piutang,
-            //         'notes' => 'Piutang dari penjualan',
-            //     ]);
-            // }
 
             return response()->json(['sales' => $sales->load('items')], 201);
         });
@@ -316,9 +278,12 @@ class SalesController extends Controller
             SUM(sales.total) as total_penjualan,
             SUM(sales.discount) as total_diskon,
             SUM(sales.tax) as total_pajak,
-            SUM(sales.paid) as total_dibayar
+            SUM(sales.paid) - SUM(sales.kembali) as total_dibayar,
+            SUM(CASE WHEN sales.payment_method = "cash" THEN sales.total ELSE 0 END) as total_cash,
+            SUM(CASE WHEN sales.payment_method = "credit" THEN sales.total ELSE 0 END) as total_credit
         ')->first();
 
         return response()->json($summary);
     }
+    
 }

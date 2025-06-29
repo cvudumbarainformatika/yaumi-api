@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\CustomerController;
 use App\Http\Controllers\Api\KasController;
+use App\Http\Controllers\Api\LaporanController;
 use App\Http\Controllers\Api\PembayaranHutangController;
 use App\Http\Controllers\Api\PembayaranPiutangController;
 use App\Http\Controllers\Api\PurchaseController;
@@ -136,6 +137,18 @@ Route::prefix('v1')->group(function () {
             // penjualan
             Route::get('/sales', [SalesController::class, 'report']);
             Route::get('/sales/summary', [SalesController::class, 'rekap']);
+            // pembelian
+            Route::get('/pembelian', [PurchaseController::class, 'report']);
+            Route::get('/pembelian/summary', [PurchaseController::class, 'rekap']);
+            // return penjualan
+            Route::get('/return-penjualan', [ReturnPenjualanController::class, 'report']);
+            Route::get('/return-penjualan/summary', [ReturnPenjualanController::class, 'rekap']);
+            // return penjualan
+            Route::get('/return-pembelian', [ReturnPembelianController::class, 'report']);
+            Route::get('/return-penjualan/summary', [ReturnPenjualanController::class, 'rekap']);
+
+            // laba rugi
+            Route::get('/labarugi', [LaporanController::class, 'labarugi']);
         });
 
         

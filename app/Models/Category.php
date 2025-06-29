@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Category extends Model
 {
-    // use LogsActivity;
+    use LogsActivity;
 
     protected $guarded = ['id'];
 

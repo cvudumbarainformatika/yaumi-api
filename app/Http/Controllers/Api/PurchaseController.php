@@ -253,32 +253,7 @@ class PurchaseController extends Controller
                     foreach ($itemsData as $item) {
                         $purchaseItem = $purchase->items()->create($item);
 
-                        // Update stok produk
-                        // $product = Product::find($item['product_id']);
-                        // if (!$product) {
-                        //     throw new \Exception("Produk dengan ID {$item['product_id']} tidak ditemukan.");
-                        // }
-
-                        // $product->increment('stock', $item['qty']);
-
-                        // // Catat mutasi stok produk dengan metode createMutation
-                        // $lastMutation = ProductStockMutation::getLastMutation($item['product_id']);
-                        // $stockBefore = $lastMutation ? $lastMutation->stock_after : 0;
-
-                        // $notes = !empty($po)
-                        //     ? 'Pembelian dari PO #' . $po->unique_code
-                        //     : 'Pembelian langsung tanpa PO';
-
-                        // ProductStockMutation::createMutation([
-                        //     'product_id' => $item['product_id'],
-                        //     'mutation_type' => 'in',
-                        //     'qty' => $item['qty'],
-                        //     'stock_before' => $stockBefore,
-                        //     'stock_after' => $stockBefore + $item['qty'],
-                        //     'source_type' => 'purchase',
-                        //     'source_id' => $purchase->id,
-                        //     'notes' => $notes,
-                        // ]);
+                        
 
                         // Update status item PO jika ada
                         if (!empty($item['purchase_order_item_id'])) {
@@ -298,33 +273,7 @@ class PurchaseController extends Controller
                         throw new \Exception("Supplier dengan ID {$supplier_id} tidak ditemukan.");
                     }
 
-                    // $supplierDebt = $supplier->debt;
-
-                    // // Jika belum ada catatan hutang, buat baru
-                    // if (!$supplierDebt && ($total - $validated['paid'] > 0)) {
-                    //     $supplierDebt = $supplier->debt()->create([
-                    //         'initial_amount' => 0,
-                    //         'current_amount' => 0, // Akan diupdate oleh createHistory
-                    //         'notes' => 'Hutang dari pembelian #' . $purchase->unique_code
-                    //     ]);
-                    // }
-
-                    // Catat histori hutang supplier jika ada hutang
-                    // if ($supplierDebt && ($total - $validated['paid'] > 0)) {
-                    //     $notes = !empty($po)
-                    //         ? 'Pembelian dari PO #' . $po->unique_code
-                    //         : 'Pembelian langsung tanpa PO';
-
-                    //     // Gunakan createHistory untuk konsistensi dengan running balance
-                    //     SupplierDebtHistory::createHistory([
-                    //         'supplier_debt_id' => $supplierDebt->id,
-                    //         'mutation_type' => 'increase',
-                    //         'amount' => $total - $validated['paid'],
-                    //         'source_type' => 'purchase',
-                    //         'source_id' => $purchase->id,
-                    //         'notes' => $notes,
-                    //     ]);
-                    // }
+                    
 
                     // Setelah semua item pembelian diproses
                     if (!empty($po)) {
@@ -383,59 +332,59 @@ class PurchaseController extends Controller
 
                         $product->decrement('stock', $item->qty);
 
-                        // Ambil stok terakhir untuk dikirim ke job
-                        $lastMutation = ProductStockMutation::getLastMutation($item->product_id);
-                        if (!$lastMutation) {
-                            throw new \Exception("Tidak ada catatan mutasi stok untuk produk ID {$item->product_id}.");
-                        }
+                        // // Ambil stok terakhir untuk dikirim ke job
+                        // $lastMutation = ProductStockMutation::getLastMutation($item->product_id);
+                        // if (!$lastMutation) {
+                        //     throw new \Exception("Tidak ada catatan mutasi stok untuk produk ID {$item->product_id}.");
+                        // }
 
-                        $stockBefore = $lastMutation->stock_after;
-                        $stockAfter = $stockBefore - $item->qty;
+                        // $stockBefore = $lastMutation->stock_after;
+                        // $stockAfter = $stockBefore - $item->qty;
 
-                        // Validasi stok tidak negatif
-                        if ($stockAfter < 0) {
-                            throw new \Exception("Pembatalan akan menyebabkan stok negatif untuk produk ID {$item->product_id}.");
-                        }
+                        // // Validasi stok tidak negatif
+                        // if ($stockAfter < 0) {
+                        //     throw new \Exception("Pembatalan akan menyebabkan stok negatif untuk produk ID {$item->product_id}.");
+                        // }
 
-                        ProductStockMutation::createMutation([
-                            'product_id' => $item->product_id,
-                            'mutation_type' => 'out',
-                            'qty' => $item->qty,
-                            'stock_before' => $stockBefore,
-                            'stock_after' => $stockAfter,
-                            'source_type' => 'purchase_cancel',
-                            'source_id' => $purchase->id,
-                            'notes' => 'Pembatalan pembelian',
-                        ]);
+                        // ProductStockMutation::createMutation([
+                        //     'product_id' => $item->product_id,
+                        //     'mutation_type' => 'out',
+                        //     'qty' => $item->qty,
+                        //     'stock_before' => $stockBefore,
+                        //     'stock_after' => $stockAfter,
+                        //     'source_type' => 'purchase_cancel',
+                        //     'source_id' => $purchase->id,
+                        //     'notes' => 'Pembatalan pembelian',
+                        // ]);
                     }
 
-                    // Rollback hutang supplier dan catat histori
-                    $supplier = Supplier::find($purchase->supplier_id);
-                    if (!$supplier) {
-                        throw new \Exception("Supplier dengan ID {$purchase->supplier_id} tidak ditemukan.");
-                    }
+                    // // Rollback hutang supplier dan catat histori
+                    // $supplier = Supplier::find($purchase->supplier_id);
+                    // if (!$supplier) {
+                    //     throw new \Exception("Supplier dengan ID {$purchase->supplier_id} tidak ditemukan.");
+                    // }
 
-                    if ($supplier && $purchase->debt > 0) {
-                        $supplierDebt = $supplier->debt;
-                        if (!$supplierDebt) {
-                            throw new \Exception("Tidak ada catatan hutang untuk supplier ID {$purchase->supplier_id}.");
-                        }
+                    // if ($supplier && $purchase->debt > 0) {
+                    //     $supplierDebt = $supplier->debt;
+                    //     if (!$supplierDebt) {
+                    //         throw new \Exception("Tidak ada catatan hutang untuk supplier ID {$purchase->supplier_id}.");
+                    //     }
 
-                        // Validasi saldo hutang cukup untuk dikurangi
-                        if ($supplierDebt->current_amount < $purchase->debt) {
-                            throw new \Exception("Saldo hutang supplier tidak cukup untuk dibatalkan.");
-                        }
+                    //     // Validasi saldo hutang cukup untuk dikurangi
+                    //     if ($supplierDebt->current_amount < $purchase->debt) {
+                    //         throw new \Exception("Saldo hutang supplier tidak cukup untuk dibatalkan.");
+                    //     }
 
-                        // PERBAIKAN: Gunakan createHistory untuk konsistensi
-                        SupplierDebtHistory::createHistory([
-                            'supplier_debt_id' => $supplierDebt->id,
-                            'mutation_type' => 'decrease',
-                            'amount' => $purchase->debt,
-                            'source_type' => 'purchase_cancel',
-                            'source_id' => $purchase->id,
-                            'notes' => 'Pembatalan pembelian',
-                        ]);
-                    }
+                    //     // PERBAIKAN: Gunakan createHistory untuk konsistensi
+                    //     SupplierDebtHistory::createHistory([
+                    //         'supplier_debt_id' => $supplierDebt->id,
+                    //         'mutation_type' => 'decrease',
+                    //         'amount' => $purchase->debt,
+                    //         'source_type' => 'purchase_cancel',
+                    //         'source_id' => $purchase->id,
+                    //         'notes' => 'Pembatalan pembelian',
+                    //     ]);
+                    // }
 
                     // Hapus purchase setelah semua rollback berhasil
                     $purchase->delete();
@@ -463,5 +412,87 @@ class PurchaseController extends Controller
                 'error' => app()->environment('production') ? null : $e->getMessage()
             ], 500);
         }
+    }
+
+
+    public function report(Request $request)
+    {
+       $page = (int) $request->input('page', 1);
+        $perPage = (int) $request->input('per_page', 15);
+        $offset = ($page - 1) * $perPage;
+
+        $query = Purchase::query()
+            ->select(
+                'purchases.*',
+                'suppliers.name as supplier_name'
+            )
+            ->join('suppliers', 'purchases.supplier_id', '=', 'suppliers.id')
+            ->when($request->filled('q'), function ($q) use ($request) {
+                $q->where(function ($q) use ($request) {
+                    $q->where('suppliers.name', 'like', "%{$request->q}%")
+                    ->orWhere('purchases.unique_code', 'like', "%{$request->q}%")
+                    ->orWhere('purchases.invoice_number', 'like', "%{$request->q}%");
+                });
+            })
+            ->when($request->filled('start_date') && $request->filled('end_date'), function ($q) use ($request) {
+                $q->whereBetween('purchases.date', [$request->start_date, $request->end_date]);
+            })
+            ->with(['supplier'])
+            ->orderByDesc('purchases.date');
+
+        $totalCount = (clone $query)->count();
+
+        $data = $query
+            ->offset($offset)
+            ->limit($perPage)
+            ->get()
+            ->map(function ($item) {
+                $item->status_pembayaran = $item->debt <= 0
+                    ? 'lunas'
+                    : ($item->paid > 0 ? 'sebagian' : 'belum lunas');
+                return $item;
+            });
+
+        return response()->json([
+            'data' => $data,
+            'meta' => [
+                'current_page' => $page,
+                'per_page' => $perPage,
+                'total' => $totalCount,
+                'last_page' => ceil($totalCount / $perPage),
+                'from' => $offset + 1,
+                'to' => $offset + $data->count(),
+                'prev' => $page > 1 ? $page - 1 : null,
+                'next' => ($offset + $data->count()) < $totalCount ? $page + 1 : null,
+            ]
+        ]);
+    }
+
+    public function rekap(Request $request)
+    {
+       $query = Purchase::query()
+        ->join('suppliers', 'purchases.supplier_id', '=', 'suppliers.id')
+        ->when($request->filled('q'), function ($q) use ($request) {
+            $q->where(function ($q) use ($request) {
+                $q->where('suppliers.name', 'like', "%{$request->q}%")
+                  ->orWhere('purchases.unique_code', 'like', "%{$request->q}%")
+                  ->orWhere('purchases.invoice_number', 'like', "%{$request->q}%");
+            });
+        })
+        ->when($request->filled('start_date') && $request->filled('end_date'), function ($q) use ($request) {
+            $q->whereBetween('purchases.date', [$request->start_date, $request->end_date]);
+        });
+
+        $totalBelanja = (clone $query)->sum('purchases.total');
+        $totalLunas   = (clone $query)->where('purchases.debt', '<=', 0)->sum('purchases.total');
+        $totalSebagian= (clone $query)->where('purchases.debt', '>', 0)->where('purchases.paid', '>', 0)->sum('purchases.total');
+        $totalBelum   = (clone $query)->where('purchases.debt', '>', 0)->where('purchases.paid', '=', 0)->sum('purchases.total');
+
+        return response()->json([
+            'total_belanja' => $totalBelanja,
+            'total_lunas' => $totalLunas,
+            'total_sebagian' => $totalSebagian,
+            'total_belum_lunas' => $totalBelum,
+        ]);
     }
 }
