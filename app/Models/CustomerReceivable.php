@@ -25,4 +25,5 @@ class CustomerReceivable extends Model
     {
         return $this->belongsTo(Customer::class);
     }
+    
 }

@@ -67,13 +67,13 @@ class PurchaseController extends Controller
         $totalCount = (clone $query)->count();
 
         // Lakukan pagination dengan simplePaginate
-        $purchases = $query->simplePaginate($perPage);
+        $purchases = $query->orderBy($request->sort_by ?? 'purchases.created_at', $request->sort_direction ? 'desc' : 'asc')->simplePaginate($perPage);
 
         $data = [
             'data' => $purchases->items(),
             'meta' => [
                 'first' => $purchases->url(1),
-                'last' => null, // SimplePaginator tidak menyediakan ini
+                'last' => $purchases->url(ceil($totalCount / $perPage)),
                 'prev' => $purchases->previousPageUrl(),
                 'next' => $purchases->nextPageUrl(),
                 'current_page' => $purchases->currentPage(),

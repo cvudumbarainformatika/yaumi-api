@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Sales;
 use App\Models\SalesItem;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class SalesController extends Controller
@@ -145,7 +146,6 @@ class SalesController extends Controller
             'payment_method' => 'nullable|string',
             'discount' => 'nullable|numeric|min:0',
             'tax' => 'nullable|numeric|min:0',
-            'cashier_id' => 'nullable|exists:users,id',
         ]);
 
         return DB::transaction(function () use ($validated) {
@@ -159,6 +159,7 @@ class SalesController extends Controller
             $uniqueCode = $validated['unique_code'] ?? null;
             $bayar = $validated['bayar'];
             $kembali = $validated['kembali']?? 0;
+            $cashierId = Auth::id() ?? null;
             $sales = Sales::create([
                 'customer_id' => $validated['customer_id'],
                 'total' => $grandTotal,
@@ -174,7 +175,7 @@ class SalesController extends Controller
                 'tax' => $tax,
                 'reference' => $uniqueCode,
                 'unique_code' => $uniqueCode,
-                'cashier_id' => $validated['cashier_id'] ?? null,
+                'cashier_id' => $cashierId,
                 'received' => ($validated['paid'] >= $grandTotal),
                 'total_received' => $grandTotal,
             ]);
@@ -191,7 +192,7 @@ class SalesController extends Controller
             }
 
 
-            return response()->json(['sales' => $sales->load('items')], 201);
+            return response()->json(['sales' => $sales->load(['items', 'customer', 'cashier'])], 201);
         });
     }
 

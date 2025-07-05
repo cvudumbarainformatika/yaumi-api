@@ -7,6 +7,7 @@ use App\Models\Customer;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class CustomerController extends Controller
@@ -20,6 +21,15 @@ class CustomerController extends Controller
         $query = $request->input('q', '');
 
         $customersQuery = Customer::query();
+        // $customersQuery
+        //     ->leftJoin('latest_receivable_per_customer as lrc', 'customers.id', '=', 'lrc.customer_id')
+        //     ->leftJoin('customer_receivables as cr', 'customers.id', '=', 'cr.customer_id')
+        //     ->addSelect([
+        //         'customers.*','cr.initial_amount as saldo_awal',
+        //         DB::raw('COALESCE(lrc.balance_after, cr.initial_amount, 0) as total_piutang')
+        //     ]);
+
+        $customersQuery->withReceivableInfo();
 
         // Apply search if query parameter exists
         if (!empty($query)) {
@@ -96,17 +106,22 @@ class CustomerController extends Controller
 
         $customer = Customer::findOrFail($id);
 
-        // return response()->json([
-        //     'raw' => $customer,
-        //     'array' => $customer->toArray(),
-        //     'id' => $customer->id,
-        //     'name' => $customer->name,
-        // ]);
-
         // Ekstrak data piutang dari input yang divalidasi
         $receivableData = [];
+
+
+       // Cegah update initial_amount jika sudah ada histori
         if (isset($validated['initial_amount'])) {
-            $receivableData['initial_amount'] = $validated['initial_amount'];
+            $shouldKeepInitialAmount = true;
+
+            if ($customer->receivable && $customer->historyPiutangs()->exists()) {
+                $shouldKeepInitialAmount = false;
+            }
+
+            if ($shouldKeepInitialAmount) {
+                $receivableData['initial_amount'] = $validated['initial_amount'];
+            }
+
             unset($validated['initial_amount']);
         }
 
@@ -120,30 +135,21 @@ class CustomerController extends Controller
             unset($validated['receivable_notes']);
         }
 
-        // Log::info('DEBUG create receivable', [
-        //     'customer_id' => $customer->id,
-        //     'has_receivable' => (bool) $customer->receivable,
-        //     'data' => $receivableData,
-        // ]);
-
         // Update data customer
         $customer->update($validated);
-
-
 
         // Update atau buat data piutang
         if (!empty($receivableData)) {
             if ($customer->receivable) {
                 $customer->receivable->update($receivableData);
             } else {
-                $customer->receivable()->create(array_merge($receivableData, [
-                    'customer_id' => $customer->id,
-                ]));
+                $customer->receivable()->create($receivableData);
             }
         }
 
         // Muat relasi piutang untuk respons
-        $customer->load('receivable');
+        // $customer->load('receivable');
+        $customer = Customer::withReceivableInfo()->with('receivable')->find($id);
 
         return response()->json($customer);
     }

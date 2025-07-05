@@ -50,4 +50,8 @@ class Sales extends Model
     {
         return $this->hasMany(PembayaranPiutangDetail::class, 'sale_id');
     }
+    public function cashier()
+    {
+       return $this->belongsTo(User::class, 'cashier_id');
+    }
 }

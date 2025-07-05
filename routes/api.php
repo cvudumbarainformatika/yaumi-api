@@ -118,6 +118,7 @@ Route::prefix('v1')->group(function () {
             Route::delete('{id}', [KasController::class, 'destroy']);
         });
         Route::prefix('users')->group(function () {
+            Route::get('/list', [UsersController::class, 'list']);
             Route::get('/', [UsersController::class, 'index']);
             Route::post('/', [UsersController::class, 'store']);
             Route::get('{id}', [UsersController::class, 'show']);

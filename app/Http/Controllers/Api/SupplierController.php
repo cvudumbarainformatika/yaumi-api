@@ -7,6 +7,7 @@ use App\Models\Supplier;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 class SupplierController extends Controller
 {
@@ -19,7 +20,15 @@ class SupplierController extends Controller
         $query = $request->input('q', '');
 
         $suppliersQuery = Supplier::query();
+        // $suppliersQuery->leftJoin('supplier_debts', 'supplier_debts.supplier_id', '=', 'suppliers.id')
+        // ->leftJoin('latest_debt_per_supplier as lds', 'supplier_debts.id', '=', 'lds.supplier_debt_id')
+        // ->addSelect([
+        //     'suppliers.*','supplier_debts.initial_amount as saldo_awal',
+        //     DB::raw('COALESCE(lds.balance_after, supplier_debts.initial_amount, 0) as total_hutang')
+        // ]);
 
+        $suppliersQuery->withDebtInfo(); // ini ambil scope di Supplier.php
+        
         // Apply search if query parameter exists
         if (!empty($query)) {
             $suppliersQuery->where('name', 'like', "%{$query}%")
@@ -30,12 +39,31 @@ class SupplierController extends Controller
         $suppliersQuery->orderBy($sortBy, $sortDirection);
 
         // Muat relasi hutang
-        $suppliersQuery->with('debt');
+        // $suppliersQuery->with('debt');
+        
+        $totalCount = (clone $suppliersQuery)->count();
+        $returns = $suppliersQuery->simplePaginate($perPage);
 
         // Get paginated results
-        $suppliers = $suppliersQuery->simplePaginate($perPage, ['*'], 'page', $page);
+        // $suppliers = $suppliersQuery->simplePaginate($perPage, ['*'], 'page', $page);
 
-        return response()->json($suppliers);
+        $data = [
+            'data' => $returns->items(),
+            'meta' => [
+                'first' => $returns->url(1),
+                'last' => $returns->url(ceil($totalCount / $perPage)),
+                'prev' => $returns->previousPageUrl(),
+                'next' => $returns->nextPageUrl(),
+                'current_page' => $returns->currentPage(),
+                'per_page' => (int)$perPage,
+                'total' => (int)$totalCount,
+                'last_page' => ceil($totalCount / $perPage),
+                'from' => (($returns->currentPage() - 1) * $perPage) + 1,
+                'to' => min($returns->currentPage() * $perPage, $totalCount),
+            ],
+        ];
+
+        return response()->json($data);
     }
 
     public function store(Request $request): JsonResponse
@@ -69,7 +97,7 @@ class SupplierController extends Controller
         // Muat relasi hutang untuk respons
         $supplier->load('debt');
 
-        Cache::forget('suppliers');
+        // Cache::forget('suppliers');
         return response()->json($supplier, 201);
     }
 
@@ -80,7 +108,7 @@ class SupplierController extends Controller
         return response()->json($supplier);
     }
 
-    public function update(Request $request, Supplier $supplier): JsonResponse
+    public function update(Request $request, $id): JsonResponse
     {
         $validated = $request->validate([
             'name' => 'sometimes|string',
@@ -93,11 +121,25 @@ class SupplierController extends Controller
             'debt_notes' => 'nullable|string'
         ]);
 
+        $supplier = Supplier::findOrFail($id);
+
         // Ekstrak data hutang dari input yang divalidasi
         $debtData = [];
+
+        // Jika initial_amount diminta
         if (isset($validated['initial_amount'])) {
-            $debtData['initial_amount'] = $validated['initial_amount'];
-            unset($validated['initial_amount']);
+            $shouldKeepInitialAmount = true;
+
+            // Cek: jika ada hutang & histori, jangan update initial_amount
+            if ($supplier->debt && $supplier->debt->histories()->exists()) {
+                $shouldKeepInitialAmount = false;
+            }
+
+            if ($shouldKeepInitialAmount) {
+                $debtData['initial_amount'] = $validated['initial_amount'];
+            }
+
+            unset($validated['initial_amount']); // selalu hapus dari $validated
         }
 
         if (isset($validated['current_amount'])) {
@@ -109,6 +151,7 @@ class SupplierController extends Controller
             $debtData['notes'] = $validated['debt_notes'];
             unset($validated['debt_notes']);
         }
+
 
         // Update data supplier
         $supplier->update($validated);
@@ -123,9 +166,11 @@ class SupplierController extends Controller
         }
 
         // Muat relasi hutang untuk respons
-        $supplier->load('debt');
+        // $supplier->load('debt');
+        // Ambil ulang supplier + join + relasi untuk respons akhir
+        $supplier = Supplier::withDebtInfo()->with('debt')->findOrFail($supplier->id);
 
-        Cache::forget('suppliers');
+        // Cache::forget('suppliers');
         return response()->json($supplier);
     }
 

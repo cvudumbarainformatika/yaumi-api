@@ -87,6 +87,21 @@ class Product extends Model
         ];
     }
 
+
+    public function scopeWithStockInfo($query)
+    {
+        return $query
+            ->leftJoin('latest_stock_per_product as lsp', 'products.id', '=', 'lsp.product_id')
+            ->leftJoin('satuans', 'products.satuan_id', '=', 'satuans.id')
+            ->leftJoin('categories', 'products.category_id', '=', 'categories.id')
+            ->addSelect([
+                'products.*',
+                'categories.name as category_name',
+                'satuans.name as satuan_name',
+                DB::raw('COALESCE(lsp.stock, products.stock) AS stock_akhir')
+            ]);
+    }
+
     public function category()
     {
         return $this->belongsTo(Category::class);
@@ -108,7 +123,10 @@ class Product extends Model
         return $this->hasMany(PurchaseOrderItem::class);
     }
 
-
+    public function stockMutations()
+    {
+        return $this->hasMany(ProductStockMutation::class);
+    }
 
 
 }

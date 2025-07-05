@@ -80,7 +80,7 @@ class PurchaseOrderController extends Controller
             'data' => $orders->items(),
             'meta' => [
                 'first' => $orders->url(1),
-                'last' => null, // SimplePaginator tidak menyediakan ini
+                'last' => $orders->url(ceil($totalCount / $perPage)),
                 'prev' => $orders->previousPageUrl(),
                 'next' => $orders->nextPageUrl(),
                 'current_page' => $orders->currentPage(),

@@ -25,4 +25,9 @@ class SupplierDebt extends Model
     {
         return $this->belongsTo(Supplier::class);
     }
+
+    public function histories()
+    {
+       return $this->hasMany(SupplierDebtHistory::class);
+    }
 }
