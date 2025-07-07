@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\CustomerController;
 use App\Http\Controllers\Api\KasController;
 use App\Http\Controllers\Api\LaporanController;
+use App\Http\Controllers\Api\MenuController;
 use App\Http\Controllers\Api\PembayaranHutangController;
 use App\Http\Controllers\Api\PembayaranPiutangController;
 use App\Http\Controllers\Api\PurchaseController;
@@ -37,6 +38,7 @@ Route::prefix('v1')->group(function () {
 
 
     Route::post('/login', [AuthController::class, 'login']);
+    Route::get('/menu', [MenuController::class, 'index']);
 
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('/profile', [AuthController::class, 'profile']);
