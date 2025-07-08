@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CashFlowController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\CategoryController;
+use App\Http\Controllers\Api\CompanyController;
 use App\Http\Controllers\Api\CustomerController;
 use App\Http\Controllers\Api\KasController;
 use App\Http\Controllers\Api\LaporanController;
@@ -48,6 +49,9 @@ Route::prefix('v1')->group(function () {
 
         // Products Routes
         Route::get('products/search', [ProductController::class, 'search'])->name('products.search');
+        Route::get('products/mutations/{id}', [ProductController::class, 'mutations'])->name('products.mutations');
+        Route::post('products/stock-opname', [ProductController::class, 'stockOpname'])->name('products.stockopname.mutations');
+
         Route::apiResource('products', ProductController::class)->names('products');
 
         // Categories Routes
@@ -152,6 +156,21 @@ Route::prefix('v1')->group(function () {
 
             // laba rugi
             Route::get('/labarugi', [LaporanController::class, 'labarugi']);
+        });
+
+
+        Route::prefix('settings')->group(function () {
+            // penjualan
+            
+            Route::get('/menu', [MenuController::class, 'index']);
+            Route::post('/menu/permissions', [MenuController::class, 'updateBulkPermissions']);
+
+            Route::prefix('company')->group(function () {
+                Route::get('/', [CompanyController::class, 'show']);
+                Route::put('/', [CompanyController::class, 'update']);
+            });
+
+
         });
 
         

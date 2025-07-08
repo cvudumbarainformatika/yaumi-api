@@ -98,7 +98,8 @@ class Product extends Model
                 'products.*',
                 'categories.name as category_name',
                 'satuans.name as satuan_name',
-                DB::raw('COALESCE(lsp.stock, products.stock) AS stock_akhir')
+                DB::raw('COALESCE(lsp.stock, products.stock) AS stock_akhir'),
+                'lsp.tanggal'
             ]);
     }
 

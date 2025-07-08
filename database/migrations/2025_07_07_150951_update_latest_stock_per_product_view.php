@@ -12,11 +12,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        DB::statement(<<<SQL
+       
+         DB::statement(<<<SQL
             CREATE OR REPLACE VIEW latest_stock_per_product AS
             SELECT
                 psm.product_id,
-                psm.stock_after AS stock
+                psm.stock_after AS stock,
+                psm.created_at AS tanggal
             FROM product_stock_mutations psm
             JOIN (
                 SELECT product_id, MAX(id) AS max_id
@@ -31,6 +33,17 @@ return new class extends Migration
      */
     public function down(): void
     {
-        DB::statement('DROP VIEW IF EXISTS latest_stock_per_product');
+         DB::statement(<<<SQL
+            CREATE OR REPLACE VIEW latest_stock_per_product AS
+            SELECT
+                psm.product_id,
+                psm.stock_after AS stock
+            FROM product_stock_mutations psm
+            JOIN (
+                SELECT product_id, MAX(id) AS max_id
+                FROM product_stock_mutations
+                GROUP BY product_id
+            ) latest ON latest.product_id = psm.product_id AND latest.max_id = psm.id;
+        SQL);
     }
 };

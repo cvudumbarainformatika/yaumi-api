@@ -4,9 +4,12 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Product;
+use App\Models\ProductStockMutation;
+use App\Models\StockOpname;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Pagination\Paginator;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class ProductController extends Controller
@@ -221,5 +224,78 @@ class ProductController extends Controller
             ],
             'filters' => array_filter($validated),
         ]);
+    }
+
+    public function mutations(Request $request, $id)
+    {
+       $page = (int) request('page', 1); // default halaman 1
+        $perPage = (int) request('per_page', 10);
+        $offset = ($page - 1) * $perPage;
+
+        $query = ProductStockMutation::query();
+
+        $query->where('product_id', $id);
+
+        $query->select(
+            'product_stock_mutations.*',
+            'products.name as product_name',
+            'satuans.name as satuan_name',)
+            ->leftJoin('products', 'product_stock_mutations.product_id', '=', 'products.id')
+            ->leftJoin('satuans', 'products.satuan_id', '=', 'satuans.id');
+
+        if ($request->filled('start_date') && $request->filled('end_date')) {
+            $query->whereBetween('product_stock_mutations.created_at', [$request->start_date, $request->end_date]);
+        }
+
+        // $productStockMutations = $query->orderByDesc('product_stock_mutations.id');
+        $totalCount = (clone $query)->count();
+        $result = $query->simplePaginate($perPage, ['*'], 'page', $page);
+        $data = [
+            'data' => $result->items(),
+            'meta' => [
+                'first' => $result->url(1),
+                'last' => url()->current() . '?page=' . ceil($totalCount / $perPage),
+                'prev' => $result->previousPageUrl(),
+                'next' => $result->nextPageUrl(),
+                'current_page' => $result->currentPage(),
+                'per_page' => (int)$perPage,
+                'total' => (int)$totalCount,
+                'last_page' => ceil($totalCount / $perPage),
+                'from' => (($result->currentPage() - 1) * $perPage) + 1,
+                'to' => min($result->currentPage() * $perPage, $totalCount),
+            ],
+        ];
+
+        return response()->json($data);
+    }
+
+
+    public function stockOpname(Request $request)
+    {
+       $product_id = $request->id;
+
+        $catatan = 'Penyesuaian Stock';
+
+        DB::beginTransaction();
+        try {
+
+            $selisih = $request->selisih;
+            if ($selisih !== 0) {
+                StockOpname::create([
+                    'user_id' => Auth::id(),
+                    'product_id' => $product_id,
+                    'stock_sistem'=> $request->stock_akhir,
+                    'stock_fisik'=> $request->stock_fisik,
+                    'selisih'=> $request->selisih,
+                    'catatan'=> $catatan
+                ]);
+            }
+            DB::commit();
+            return response()->json(['message' => 'Stock opname berhasil disimpan'], 200);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            return response()->json(['message' => 'Gagal menyimpan pembayaran hutang', 'error' => $e->getMessage()], 500);
+        }
+
     }
 }
