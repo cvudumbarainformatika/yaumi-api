@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\ReturnPembelianController;
 use App\Http\Controllers\Api\ReturnPenjualanController;
 use App\Http\Controllers\Api\SalesController;
 use App\Http\Controllers\Api\SatuanController;
+use App\Http\Controllers\Api\StockOpnameController;
 use App\Http\Controllers\Api\SupplierController;
 use App\Http\Controllers\Api\UsersController;
 
@@ -156,6 +157,9 @@ Route::prefix('v1')->group(function () {
 
             // laba rugi
             Route::get('/labarugi', [LaporanController::class, 'labarugi']);
+
+            //stock-opname
+            Route::get('/stock-opname', [StockOpnameController::class, 'index']);
         });
 
 
