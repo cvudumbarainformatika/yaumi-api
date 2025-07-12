@@ -47,12 +47,17 @@ WORKDIR /var/www
 # Supervisor dirs
 RUN mkdir -p /var/log/supervisor /var/run/supervisor /etc/supervisor/conf.d
 
-# Copy app (⛔️ no ENV file yet)
+
+# Copy supervisord.conf ke dalam image
+COPY ./docker-compose/supervisor/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
+# Baru salin semua app source code
 COPY --chown=$user:$user . .
 
 # Permissions
 RUN chmod -R 755 /var/log/supervisor /var/run/supervisor && \
     chown -R $user:$user /var/www /var/log/supervisor /var/run/supervisor
+
 
 # Composer install production
 USER $user
