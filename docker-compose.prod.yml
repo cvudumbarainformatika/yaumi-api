@@ -34,7 +34,9 @@ services:
       - ryuuunet
 
   nginx:
-    image: nginx:alpine
+    build:
+      context: ./docker-compose/yaumi_nginx
+      dockerfile: Dockerfile.prod
     container_name: yaumi_nginx
     restart: unless-stopped
     depends_on:
@@ -43,7 +45,6 @@ services:
       - "8182:80"
     volumes:
       - ./:/var/www:ro
-      - ./docker-compose/nginx/prod:/etc/nginx/conf.d:ro
     networks:
       - ryuuunet
 
