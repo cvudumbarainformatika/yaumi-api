@@ -51,11 +51,12 @@ services:
       - meili_data:/meili_data
     networks:
       - ryuuunet
-    test: ["CMD", "curl", "-f", "http://localhost:7700/health"]
-    interval: 10s
-    timeout: 5s
-    retries: 10
-    start_period: 30s
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7700/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
 
   mysql:
     image: mysql:8.0
