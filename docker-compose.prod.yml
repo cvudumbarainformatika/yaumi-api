@@ -13,6 +13,7 @@ services:
       - APP_ENV=production
       - COMPOSER_ALLOW_SUPERUSER=1
     volumes:
+      - ./:/var/www
       - ./docker-compose/php/php.prod.ini:/usr/local/etc/php/php.ini:ro
       - ./docker-compose/supervisor/conf.d:/etc/supervisor/conf.d
       - /opt/env/yaumi/.env.production:/var/www/.env:ro
@@ -21,15 +22,13 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      # meilisearch:
-      #   condition: service_healthy
+    healthcheck:
+      test: ["CMD", "pgrep", "php-fpm"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
     networks:
       - ryuuunet
-    # healthcheck:
-    #   test: ["CMD", "pgrep", "php-fpm"]
-    #   interval: 30s
-    #   timeout: 10s
-    #   retries: 5
 
   nginx:
     image: nginx:alpine
@@ -40,30 +39,10 @@ services:
     ports:
       - "8182:80"
     volumes:
-      - /var/www:/var/www:ro
+      - ./:/var/www:ro
       - ./docker-compose/nginx:/etc/nginx/conf.d
     networks:
       - ryuuunet
-
-  # meilisearch:
-  #   image: getmeili/meilisearch:v1.5
-  #   container_name: yaumi_meilisearch
-  #   environment:
-  #     - MEILI_MASTER_KEY=harry141312
-  #     - MEILI_NO_ANALYTICS=true
-  #     - MEILI_ENV=production
-  #   ports:
-  #     - "7700:7700"
-  #   volumes:
-  #     - meili_data:/meili_data
-  #   networks:
-  #     - ryuuunet
-  #   healthcheck:
-  #     test: ["CMD", "curl", "-f", "http://localhost:7700/health"]
-  #     interval: 10s
-  #     timeout: 5s
-  #     retries: 10
-  #     start_period: 30s
 
   mysql:
     image: mysql:8.0
@@ -109,5 +88,4 @@ networks:
 
 volumes:
   dbdata:
-  meili_data:
   redis_data:
