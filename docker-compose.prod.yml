@@ -9,3 +9,4 @@ services:
       - APP_ENV=production
     volumes:
       - ./docker-compose/php/php.prod.ini:/usr/local/etc/php/php.ini:ro
+      - /opt/env/yaumi/.env.production:/var/www/.env:ro
