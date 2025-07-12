@@ -49,7 +49,7 @@ RUN mkdir -p /var/log/supervisor /var/run/supervisor /etc/supervisor/conf.d
 
 
 # Copy supervisord.conf ke dalam image
-COPY ./docker-compose/supervisor/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY ./docker-compose/supervisor/conf.d/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
 # Baru salin semua app source code
 COPY --chown=$user:$user . .
