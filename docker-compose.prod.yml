@@ -16,11 +16,18 @@ services:
       - /opt/env/yaumi/.env.production:/var/www/.env:ro
     depends_on:
       mysql:
-        condition: service_started
+        condition: service_healthy
       redis:
         condition: service_started
+      meilisearch:
+        condition: service_healthy
     networks:
       - ryuuunet
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
 
   nginx:
     image: nginx:alpine
@@ -75,10 +82,11 @@ services:
     networks:
       - ryuuunet
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${DB_PASSWORD}"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 20s
 
   redis:
     image: redis:alpine
