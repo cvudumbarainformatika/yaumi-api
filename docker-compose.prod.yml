@@ -14,7 +14,8 @@ services:
     volumes:
       - ./:/var/www
       - ./docker-compose/php/php.prod.ini:/usr/local/etc/php/php.ini:ro
-      - /opt/env/yaumi/.env.production:/var/www/.env:ro
+      - /opt/yaumi-api/.env.production:/var/www/.env:ro
+      - ./docker-compose/supervisor/conf.d:/etc/supervisor/conf.d
     depends_on:
       mysql:
         condition: service_healthy
