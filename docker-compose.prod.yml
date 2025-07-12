@@ -36,8 +36,7 @@ services:
     container_name: yaumi_nginx
     restart: unless-stopped
     depends_on:
-      app:
-        condition: service_healthy
+      - app
     ports:
       - "8182:80"
     volumes:
