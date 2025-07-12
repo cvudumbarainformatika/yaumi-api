@@ -35,7 +35,7 @@ services:
 
   nginx:
     build:
-      context: ./docker-compose/yaumi_nginx
+      context: ./docker-compose/nginx
       dockerfile: Dockerfile.prod
     container_name: yaumi_nginx
     restart: unless-stopped
