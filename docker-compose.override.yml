@@ -1,0 +1,11 @@
+services:
+  app:
+    build:
+      dockerfile: Dockerfile.fpm
+    ports:
+      - "9000:9000"
+    environment:
+      - COMPOSER_MEMORY_LIMIT=-1
+      - APP_ENV=local
+    volumes:
+      - ./docker-compose/php/php.dev.ini:/usr/local/etc/php/php.ini

@@ -1,0 +1,11 @@
+services:
+  app:
+    build:
+      dockerfile: Dockerfile.prod
+    ports:
+      - "9000:9000"
+    restart: unless-stopped
+    environment:
+      - APP_ENV=production
+    volumes:
+      - ./docker-compose/php/php.prod.ini:/usr/local/etc/php/php.ini:ro
