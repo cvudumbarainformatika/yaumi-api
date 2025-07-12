@@ -15,7 +15,7 @@ services:
       - ./:/var/www
       - ./docker-compose/php/php.prod.ini:/usr/local/etc/php/php.ini:ro
       - ./docker-compose/supervisor/conf.d:/etc/supervisor/conf.d
-      - ./env/.env.production:/var/www/.env:ro   # kalau mau pisahkan env
+      - /opt/env/yaumi/.env.production:/var/www/.env:ro
     depends_on:
       mysql:
         condition: service_healthy
