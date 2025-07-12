@@ -79,6 +79,7 @@ services:
     volumes:
       - dbdata:/var/lib/mysql/
       - ./docker-compose/mysql/my.cnf:/etc/mysql/conf.d/my.cnf
+      - /opt/env/yaumi/.env.production:/var/www/.env:ro
     networks:
       - ryuuunet
     healthcheck:
