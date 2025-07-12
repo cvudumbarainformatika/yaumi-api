@@ -72,10 +72,10 @@ services:
     ports:
       - "3307:3306"
     environment:
-      MYSQL_DATABASE: ${DB_DATABASE}
-      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
-      MYSQL_PASSWORD: ${DB_PASSWORD}
-      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_DATABASE: yaumi_db
+      MYSQL_ROOT_PASSWORD: harry141312
+      MYSQL_PASSWORD: harry141312
+      MYSQL_USER: harry
     volumes:
       - dbdata:/var/lib/mysql/
       - ./docker-compose/mysql/my.cnf:/etc/mysql/conf.d/my.cnf
