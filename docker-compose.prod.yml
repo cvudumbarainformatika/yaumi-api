@@ -38,7 +38,8 @@ services:
       - ryuuunet
 
   meilisearch:
-    image: vikpe/meilisearch-arm64
+    image: getmeili/meilisearch:v1.5
+    platform: linux/arm64
     container_name: yaumi_meilisearch
     environment:
       - MEILI_MASTER_KEY=${MEILISEARCH_KEY:-masterKey}
