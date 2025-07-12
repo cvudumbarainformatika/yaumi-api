@@ -21,8 +21,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      meilisearch:
-        condition: service_healthy
+      # meilisearch:
+      #   condition: service_healthy
     networks:
       - ryuuunet
     healthcheck:
@@ -46,25 +46,25 @@ services:
     networks:
       - ryuuunet
 
-  meilisearch:
-    image: getmeili/meilisearch:v1.5
-    container_name: yaumi_meilisearch
-    environment:
-      - MEILI_MASTER_KEY=harry141312
-      - MEILI_NO_ANALYTICS=true
-      - MEILI_ENV=production
-    ports:
-      - "7700:7700"
-    volumes:
-      - meili_data:/meili_data
-    networks:
-      - ryuuunet
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:7700/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 30s
+  # meilisearch:
+  #   image: getmeili/meilisearch:v1.5
+  #   container_name: yaumi_meilisearch
+  #   environment:
+  #     - MEILI_MASTER_KEY=harry141312
+  #     - MEILI_NO_ANALYTICS=true
+  #     - MEILI_ENV=production
+  #   ports:
+  #     - "7700:7700"
+  #   volumes:
+  #     - meili_data:/meili_data
+  #   networks:
+  #     - ryuuunet
+  #   healthcheck:
+  #     test: ["CMD", "curl", "-f", "http://localhost:7700/health"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 10
+  #     start_period: 30s
 
   mysql:
     image: mysql:8.0
