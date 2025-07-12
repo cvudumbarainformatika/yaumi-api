@@ -14,8 +14,8 @@ services:
     volumes:
       - ./:/var/www
       - ./docker-compose/php/php.prod.ini:/usr/local/etc/php/php.ini:ro
-      - /opt/yaumi-api/.env.production:/var/www/.env:ro
       - ./docker-compose/supervisor/conf.d:/etc/supervisor/conf.d
+      - ./env/.env.production:/var/www/.env:ro   # kalau mau pisahkan env
     depends_on:
       mysql:
         condition: service_healthy
@@ -25,11 +25,6 @@ services:
         condition: service_healthy
     networks:
       - ryuuunet
-    # healthcheck:
-    #   test: ["CMD", "pgrep", "php-fpm"]
-    #   interval: 30s
-    #   timeout: 10s
-    #   retries: 5
 
   nginx:
     image: nginx:alpine
@@ -84,7 +79,7 @@ services:
     networks:
       - ryuuunet
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${DB_PASSWORD}"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-pharry141312"]
       interval: 10s
       timeout: 5s
       retries: 5
