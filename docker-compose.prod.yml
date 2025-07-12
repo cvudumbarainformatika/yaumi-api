@@ -3,7 +3,7 @@ services:
     build:
       dockerfile: Dockerfile.prod
     ports:
-      - "9000:9000"
+      - "9001:9000"
     restart: unless-stopped
     environment:
       - APP_ENV=production
