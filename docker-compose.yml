@@ -5,7 +5,7 @@ services:
                 user: harry
                 uid: 1000
             context: ./
-            # dockerfile: .
+            dockerfile: Dockerfile.fpm
         container_name: yaumi_app
         working_dir: /var/www/
         restart: unless-stopped
@@ -14,14 +14,14 @@ services:
                 condition: service_started
             redis:
                 condition: service_started
-        # ports:
-        #     - "9000:9000"
-        # environment:
-        #     - COMPOSER_MEMORY_LIMIT=-1
+        ports:
+            - "9000:9000"
+        environment:
+            - COMPOSER_MEMORY_LIMIT=-1
         volumes:
             - ./:/var/www
             - ./docker-compose/supervisor/conf.d:/etc/supervisor/conf.d
-            # - ./docker-compose/php/php.ini:/usr/local/etc/php/php.ini:ro
+            - ./docker-compose/php/php.ini:/usr/local/etc/php/php.ini:ro
             - ./docker-compose/php/php-fpm.conf:/usr/local/etc/php-fpm.d/www.conf:ro
             - supervisor_run:/var/run/supervisor
             - supervisor_log:/var/log/supervisor
@@ -50,8 +50,7 @@ services:
             - ryuuunet
 
     meilisearch:
-        # image: getmeili/meilisearch:v1.5
-        image: vikpe/meilisearch-arm64
+        image: getmeili/meilisearch:v1.5
         container_name: yaumi_meilisearch
         environment:
             - MEILI_MASTER_KEY=${MEILISEARCH_KEY:-masterKey}
