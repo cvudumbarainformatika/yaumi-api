@@ -43,7 +43,7 @@ services:
       - "8182:80"
     volumes:
       - ./:/var/www:ro
-      - ./docker-compose/nginx:/etc/nginx/conf.d
+      - ./docker-compose/nginx/prod.conf:/etc/nginx/conf.d
     networks:
       - ryuuunet
 
