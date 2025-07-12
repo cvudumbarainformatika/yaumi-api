@@ -18,16 +18,13 @@ services:
             - "9000:9000"
         environment:
             - COMPOSER_MEMORY_LIMIT=-1
-        # volumes:
-        #     - ./:/var/www
-        #     # - ./docker-compose/supervisor/conf.d:/etc/supervisor/conf.d
-        #     - ./docker-compose/php/php.ini:/usr/local/etc/php/php.ini:ro
-        #     - ./docker-compose/php/php-fpm.conf:/usr/local/etc/php-fpm.d/www.conf:ro
-        #     - supervisor_run:/var/run/supervisor
-        #     - supervisor_log:/var/log/supervisor
         volumes:
-            - /opt/env/yaumi/.env.production:/var/www/.env:ro
-            - ./docker-compose/php/php.prod.ini:/usr/local/etc/php/php.ini:ro
+            - ./:/var/www
+            - ./docker-compose/supervisor/conf.d:/etc/supervisor/conf.d
+            - ./docker-compose/php/php.ini:/usr/local/etc/php/php.ini:ro
+            - ./docker-compose/php/php-fpm.conf:/usr/local/etc/php-fpm.d/www.conf:ro
+            - supervisor_run:/var/run/supervisor
+            - supervisor_log:/var/log/supervisor
         user: root
         networks:
             - ryuuunet
