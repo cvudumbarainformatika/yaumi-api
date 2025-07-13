@@ -12,11 +12,6 @@ services:
     environment:
       - APP_ENV=production
       - COMPOSER_ALLOW_SUPERUSER=1
-    # volumes:
-    #   - ./:/var/www
-    #   - ./docker-compose/php/php.prod.ini:/usr/local/etc/php/php.ini:ro
-    #   - ./docker-compose/supervisor/conf.d:/etc/supervisor/conf.d
-    #   - /opt/env/yaumi/.env.production:/var/www/.env:ro
     volumes:
         - /opt/env/yaumi/.env.production:/var/www/.env:ro
         - ./docker-compose/php/php.prod.ini:/usr/local/etc/php/php.ini:ro
