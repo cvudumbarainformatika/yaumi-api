@@ -6,6 +6,9 @@ use Meilisearch\Client;
 Route::get('/', function () {
     return view('welcome');
 });
+Route::get('/autogen', function () {
+    echo 'Selamat Datang di Toko Online Yaumi Backend!';
+});
 
 Route::get('/delete-all-indexes', function () {
     $client = new Client(
