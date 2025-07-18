@@ -182,6 +182,7 @@ Route::prefix('v1')->group(function () {
             // penjualan
             
             Route::get('/penjualan', [DashboardController::class, 'penjualan']);
+            Route::get('/cart-penjualan', [DashboardController::class, 'cartPenjualan']);
             Route::get('/pembelian', [DashboardController::class, 'pembelian']);
             Route::get('/activity', [DashboardController::class, 'activity']);
             

@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Company;
 use App\Models\UserActivity;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -52,6 +53,41 @@ class DashboardController extends Controller
           'transaksi_yesterday' => $data->transaksi_yesterday,
           'growthTransaksi' => $growthTransaksi
       ]);
+    }
+
+    public function cartPenjualan()
+    {
+      $year = Carbon::now()->year;
+
+      $sales = DB::table('sales')
+          ->selectRaw('MONTH(created_at) as month, SUM(total) as total')
+          ->whereYear('created_at', $year)
+          ->groupByRaw('MONTH(created_at)')
+          ->orderByRaw('MONTH(created_at)')
+          ->pluck('total', 'month')
+          ->toArray();
+
+
+      $labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+      $data = [];
+      for ($i = 1; $i <= 12; $i++) {
+          $data[] = isset($sales[$i]) ? (float)$sales[$i] : 0;
+      }
+
+      // Jika hanya ingin sampai bulan saat ini
+      $currentMonth = now()->month;
+      $labels = array_slice($labels, 0, $currentMonth);
+      $data = array_slice($data, 0, $currentMonth);
+
+      // Return sebagai format ChartJS
+      return response()->json([
+            'labels' => $labels,
+            'datasets' => [[
+                'label' => 'Penjualan',
+                'data' => $data,
+            ]]
+          ]);
     }
 
 
