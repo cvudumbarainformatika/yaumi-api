@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\CompanyController;
 use App\Http\Controllers\Api\CustomerController;
+use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\KasController;
 use App\Http\Controllers\Api\LaporanController;
 use App\Http\Controllers\Api\MenuController;
@@ -173,6 +174,17 @@ Route::prefix('v1')->group(function () {
                 Route::get('/', [CompanyController::class, 'show']);
                 Route::put('/', [CompanyController::class, 'update']);
             });
+
+
+        });
+
+        Route::prefix('dashboard')->group(function () {
+            // penjualan
+            
+            Route::get('/penjualan', [DashboardController::class, 'penjualan']);
+            Route::get('/pembelian', [DashboardController::class, 'pembelian']);
+            Route::get('/activity', [DashboardController::class, 'activity']);
+            
 
 
         });

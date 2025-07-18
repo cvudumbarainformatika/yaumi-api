@@ -1,0 +1,112 @@
+<?php
+// app/Http/Controllers/Api/V1/CompanyController.php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Models\Company;
+use App\Models\UserActivity;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
+
+class DashboardController extends Controller
+{
+    public function penjualan()
+    {
+        $data = DB::table('sales')
+          ->selectRaw("
+              COALESCE(SUM(CASE 
+                WHEN created_at >= CURDATE() AND created_at < CURDATE() + INTERVAL 1 DAY 
+                THEN total ELSE 0 END), 0) AS total_today,
+              
+              COALESCE(SUM(CASE 
+                WHEN created_at >= CURDATE() - INTERVAL 1 DAY AND created_at < CURDATE() 
+                THEN total ELSE 0 END), 0) AS total_yesterday,
+
+              COUNT(CASE 
+                WHEN created_at >= CURDATE() AND created_at < CURDATE() + INTERVAL 1 DAY 
+                THEN 1 END) AS transaksi_today,
+
+              COUNT(CASE 
+                WHEN created_at >= CURDATE() - INTERVAL 1 DAY AND created_at < CURDATE() 
+                THEN 1 END) AS transaksi_yesterday
+          ")
+          ->first();
+
+      $growth = 0;
+      if ($data->total_yesterday > 0) {
+          $growth = round((($data->total_today - $data->total_yesterday) / $data->total_yesterday) * 100, 2);
+      }
+      $growthTransaksi = 0;
+      if ($data->transaksi_yesterday > 0) {
+          $growthTransaksi = round((($data->transaksi_today - $data->transaksi_yesterday) / $data->transaksi_yesterday) * 100, 2);
+      }
+
+      return response()->json([
+          'total_today' => $data->total_today,
+          'total_yesterday' => $data->total_yesterday,
+          'growth' => $growth,
+          'transaksi_today' => $data->transaksi_today,
+          'transaksi_yesterday' => $data->transaksi_yesterday,
+          'growthTransaksi' => $growthTransaksi
+      ]);
+    }
+
+
+    public function pembelian()
+    {
+       $data = DB::table('purchases')
+            ->selectRaw("
+                COALESCE(SUM(CASE 
+                    WHEN created_at >= CURDATE() AND created_at < CURDATE() + INTERVAL 1 DAY 
+                    THEN total ELSE 0 END), 0) AS total_today,
+                
+                COALESCE(SUM(CASE 
+                    WHEN created_at >= CURDATE() - INTERVAL 1 DAY AND created_at < CURDATE() 
+                    THEN total ELSE 0 END), 0) AS total_yesterday,
+
+                COUNT(CASE 
+                    WHEN created_at >= CURDATE() AND created_at < CURDATE() + INTERVAL 1 DAY 
+                    THEN 1 END) AS transaksi_today,
+
+                COUNT(CASE 
+                    WHEN created_at >= CURDATE() - INTERVAL 1 DAY AND created_at < CURDATE() 
+                    THEN 1 END) AS transaksi_yesterday
+            ")
+            ->first();
+
+        // Hitung pertumbuhan nilai total
+        $growth = 0;
+        if ($data->total_yesterday > 0) {
+            $growth = round((($data->total_today - $data->total_yesterday) / $data->total_yesterday) * 100, 2);
+        }
+        $statusGrowth = $growth > 0 ? 'up' : ($growth < 0 ? 'down' : 'stay');
+
+        // Hitung pertumbuhan jumlah transaksi
+        $growthTransaksi = 0;
+        if ($data->transaksi_yesterday > 0) {
+            $growthTransaksi = round((($data->transaksi_today - $data->transaksi_yesterday) / $data->transaksi_yesterday) * 100, 2);
+        }
+        $statusTransaksi = $growthTransaksi > 0 ? 'up' : ($growthTransaksi < 0 ? 'down' : 'stay');
+
+        // Hasil response
+        return [
+            'total_today' => $data->total_today,
+            'total_yesterday' => $data->total_yesterday,
+            'transaksi_today' => $data->transaksi_today,
+            'transaksi_yesterday' => $data->transaksi_yesterday,
+            'growth' => $growth,
+            'growth_status' => $statusGrowth,
+            'growth_transaksi' => $growthTransaksi,
+            'growth_transaksi_status' => $statusTransaksi,
+        ];
+    }
+
+    public function activity()
+    {
+        $activity = UserActivity::with('user')->orderBy('created_at', 'desc')->limit(5)->get();
+        return response()->json($activity);
+    }
+}

@@ -45,7 +45,7 @@ services:
             - "8182:80"
         volumes:
             - ./:/var/www
-            - ./docker-compose/nginx/default.conf:/etc/nginx/conf.d
+            - ./docker-compose/nginx:/etc/nginx/conf.d
         networks:
             - ryuuunet
 
