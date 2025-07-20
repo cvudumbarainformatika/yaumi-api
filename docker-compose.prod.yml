@@ -26,7 +26,8 @@ services:
       timeout: 10s
       retries: 5
     networks:
-      - ryuuunet
+      - default
+      - yaumi_shared
 
   nginx:
     build:
@@ -41,7 +42,8 @@ services:
     volumes:
       - ./:/var/www:ro
     networks:
-      - ryuuunet
+      - default
+      - yaumi_shared
 
   mysql:
     image: mysql:8.0
@@ -58,7 +60,8 @@ services:
       - dbdata:/var/lib/mysql/
       - ./docker-compose/mysql/my.cnf:/etc/mysql/conf.d/my.cnf
     networks:
-      - ryuuunet
+      - default
+      - yaumi_shared
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-pharry141312"]
       interval: 10s
@@ -74,7 +77,8 @@ services:
     volumes:
       - redis_data:/data
     networks:
-      - ryuuunet
+      - default
+      - yaumi_shared
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 30s
@@ -82,8 +86,9 @@ services:
       retries: 3
 
 networks:
-  ryuuunet:
-    driver: bridge
+  default:
+  yaumi_shared:
+    external: true
 
 volumes:
   dbdata:
