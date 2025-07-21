@@ -219,7 +219,7 @@ class ProductController extends Controller
             'links' => [
                 'first' => $products->url(1),
                 'last' => $products->url($products->lastPage()),
-                'prev' => $products->previousPageUrl(),
+                'prev' => $products->previousPageUrl(), 
                 'next' => $products->nextPageUrl(),
             ],
             'filters' => array_filter($validated),

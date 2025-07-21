@@ -50,7 +50,7 @@ Route::prefix('v1')->group(function () {
 
 
         // Products Routes
-        Route::get('products/search', [ProductController::class, 'search'])->name('products.search');
+        Route::get('products/search', [ProductController::class, 'index'])->name('products.search');
         Route::get('products/mutations/{id}', [ProductController::class, 'mutations'])->name('products.mutations');
         Route::post('products/stock-opname', [ProductController::class, 'stockOpname'])->name('products.stockopname.mutations');
 
@@ -63,7 +63,7 @@ Route::prefix('v1')->group(function () {
         Route::apiResource('satuans', SatuanController::class)->names('satuans');
 
         // Supplier Routes
-        Route::get('suppliers/search', [SupplierController::class, 'search'])->name('suppliers.search');
+        Route::get('suppliers/search', [SupplierController::class, 'index'])->name('suppliers.search');
         Route::apiResource('suppliers', SupplierController::class)->names('suppliers');
 
         
