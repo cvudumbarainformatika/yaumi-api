@@ -43,6 +43,16 @@ Route::prefix('v1')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
     Route::get('/menu', [MenuController::class, 'index']);
 
+    Route::prefix('settings')->group(function () {
+
+        Route::prefix('company')->group(function () {
+            Route::get('/', [CompanyController::class, 'show']);
+            Route::put('/', [CompanyController::class, 'update']);
+        });
+
+    });
+
+
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('/profile', [AuthController::class, 'profile']);
         Route::post('/logout', [AuthController::class, 'logout']);
@@ -169,12 +179,6 @@ Route::prefix('v1')->group(function () {
             
             Route::get('/menu', [MenuController::class, 'index']);
             Route::post('/menu/permissions', [MenuController::class, 'updateBulkPermissions']);
-
-            Route::prefix('company')->group(function () {
-                Route::get('/', [CompanyController::class, 'show']);
-                Route::put('/', [CompanyController::class, 'update']);
-            });
-
 
         });
 
