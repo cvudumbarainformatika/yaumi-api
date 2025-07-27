@@ -108,18 +108,19 @@ class ProductController extends Controller
 
     public function update(Request $request, $id): JsonResponse
     {
+        // return response()->json($request->all());
         $validated = $request->validate([
             'barcode' => 'sometimes|unique:products,barcode,' . $id,
             'category_id' => 'sometimes|exists:categories,id',
             'name' => 'sometimes|string',
-            'satuan' => 'sometimes|string',
+            'satuan_id' => 'sometimes|exists:satuans,id',
             'hargabeli' => 'sometimes|numeric',
             'hargajual' => 'sometimes|numeric',
             'hargajualcust' => 'sometimes|numeric',
             'hargajualantar' => 'sometimes|numeric',
             'stock' => 'sometimes|integer',
             'minstock' => 'sometimes|integer',
-            'rak' => 'sometimes|string',
+            'rak' => 'sometimes|nullable|string',
         ]);
 
         $product = Product::findOrFail($id);
@@ -128,6 +129,9 @@ class ProductController extends Controller
             return response()->json(['message' => 'Product not found'], 404);
         }
 
+        if (!$request->all()) {
+            return response()->json(['message' => 'Tidak ada data yang dikirim'], 422);
+        }
         $updated = $product->update($validated);
 
         if (!$updated) {

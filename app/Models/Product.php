@@ -12,56 +12,49 @@ class Product extends Model
 {
     use Searchable, LogsActivity;
 
-    protected $fillable = [
-        'name',
-        'description',
-        'price',
-        'stock',
-        'barcode',
-        'category_id',
-        'satuan_id',
-        'hargabeli',
-        'hargajual',
-        'hargajualcust',
-        'hargajualantar',
-        'minstock',
-        'rak',
-    ];
-
-    protected $casts = [
-        'hargabeli' => 'decimal:2',
-        'hargajual' => 'decimal:2',
-        'hargajualcust' => 'decimal:2',
-        'hargajualantar' => 'decimal:2',
-        'stock' => 'integer',
-        'minstock' => 'integer',
-    ];
+    // protected $fillable = [
+    //     'name',
+    //     'description',
+    //     'price',
+    //     'stock',
+    //     'barcode',
+    //     'category_id',
+    //     'satuan_id',
+    //     'hargabeli',
+    //     'hargajual',
+    //     'hargajualcust',
+    //     'hargajualantar',
+    //     'minstock',
+    //     'rak',
+    // ];
 
 
     /**
      * Update stok produk dengan optimistic locking
      */
-    public function updateStock($newStock)
-    {
-        return DB::transaction(function () use ($newStock) {
-            // Ambil produk terbaru
-            $freshProduct = self::lockForUpdate()->find($this->id);
+    // public function updateStock($newStock)
+    // {
+    //     return DB::transaction(function () use ($newStock) {
+    //         // Ambil produk terbaru
+    //         $freshProduct = self::lockForUpdate()->find($this->id);
 
-            // Jika timestamp berbeda, berarti ada perubahan bersamaan
-            if ($freshProduct->updated_at->ne($this->updated_at)) {
-                throw new \Exception("Produk telah diubah oleh proses lain. Silakan coba lagi.");
-            }
+    //         // Jika timestamp berbeda, berarti ada perubahan bersamaan
+    //         if ($freshProduct->updated_at->ne($this->updated_at)) {
+    //             throw new \Exception("Produk telah diubah oleh proses lain. Silakan coba lagi.");
+    //         }
 
-            // Update stok
-            $freshProduct->stock = $newStock;
-            $freshProduct->save();
+    //         // Update stok
+    //         $freshProduct->stock = $newStock;
+    //         $freshProduct->save();
 
-            // Refresh model saat ini
-            $this->refresh();
+    //         // Refresh model saat ini
+    //         $this->refresh();
 
-            return $this;
-        });
-    }
+    //         return $this;
+    //     });
+    // }
+
+    protected $guarded = ['id'];
 
 
     public function toSearchableArray(): array
