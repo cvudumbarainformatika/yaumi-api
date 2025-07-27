@@ -36,8 +36,8 @@ class ProductController extends Controller
         if ($request->filled('q') && !empty($request->q)) {
             $search = $request->q;
             $query->where(function($q) use ($search) {
-                $q->where('products.name', 'like', "%{$search}%")
-                    ->orWhere('products.barcode', 'like', "%{$search}%")
+                $q->where('products.barcode', 'like', "%{$search}%")
+                    ->orWhere('products.name', 'like', "%{$search}%")
                     ->orWhere('products.rak', 'like', "%{$search}%")
                     ->orWhere('categories.name', 'like', "%{$search}%")
                     ->orWhere('satuans.name', 'like', "%{$search}%");
