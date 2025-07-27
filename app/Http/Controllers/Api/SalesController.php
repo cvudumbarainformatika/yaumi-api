@@ -197,7 +197,7 @@ class SalesController extends Controller
             }
 
 
-            return response()->json(['sales' => $sales->load(['items', 'customer', 'cashier'])], 201);
+            return response()->json(['sales' => $sales->load(['items.product', 'customer', 'cashier'])], 201);
         });
     }
 
