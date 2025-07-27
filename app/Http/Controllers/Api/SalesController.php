@@ -15,8 +15,9 @@ class SalesController extends Controller
     public function index(Request $request)
     {
         $query = Sales::query()
-            ->select('sales.*', 'customers.name as customer_name')
+            ->select('sales.*', 'customers.name as customer_name', 'users.name as cashier_name')
             ->leftJoin('customers', 'sales.customer_id', '=', 'customers.id')
+            ->leftJoin('users', 'sales.cashier_id', '=', 'users.id')
             ->with(['customer', 'items.product']);
 
             // Filter pencarian jika parameter q tidak kosong
@@ -24,7 +25,8 @@ class SalesController extends Controller
             $search = $request->q;
             $query->where(function($q) use ($search) {
                 $q->where('sales.unique_code', 'like', "%{$search}%")
-                  ->orWhere('customers.name', 'like', "%{$search}%");
+                  ->orWhere('customers.name', 'like', "%{$search}%")
+                  ->orWhere('users.name', 'like', "%{$search}%");
             });
         }
 
@@ -41,6 +43,9 @@ class SalesController extends Controller
 
         // $purchases = $query->orderByDesc('purchases.id')->simplePaginate(15);
         $perPage = $request->input('per_page', 10);
+
+        $query->orderBy($request->input('sort_by', 'created_at'), $request->input('sort_direction', 'desc'));
+
         $totalCount = (clone $query)->count();
 
         // Lakukan pagination dengan simplePaginate
