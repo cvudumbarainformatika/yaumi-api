@@ -169,6 +169,9 @@ Route::prefix('v1')->group(function () {
             // laba rugi
             Route::get('/labarugi', [LaporanController::class, 'labarugi']);
 
+            // rekapkasir
+            Route::get('/rekapkasir', [LaporanController::class, 'cashFlows']);
+
             //stock-opname
             Route::get('/stock-opname', [StockOpnameController::class, 'index']);
         });

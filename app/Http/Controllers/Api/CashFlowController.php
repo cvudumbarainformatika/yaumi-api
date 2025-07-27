@@ -15,6 +15,10 @@ class CashFlowController extends Controller
      */
     public function index(Request $request)
     {
+        $page = (int) $request->input('page', 1);
+        $perPage = (int) $request->input('per_page', 15);
+        $offset = ($page - 1) * $perPage;
+
         $query = CashFlow::with(['kas', 'kasir', 'user']);
 
         if ($request->filled('tipe')) {
@@ -30,10 +34,36 @@ class CashFlowController extends Controller
         }
 
         if ($request->filled('start_date') && $request->filled('end_date')) {
-            $query->whereBetween('tanggal', [$request->start_date, $request->end_date]);
+            $query->when($request->filled('start_date') && $request->filled('end_date'), function ($q) use ($request) {
+                $start = $request->start_date . ' 00:00:00';
+                $end = $request->end_date . ' 23:59:59';
+                $q->whereBetween('cash_flows.created_at', [$start, $end]);
+            });
         }
 
-        return response()->json($query->orderByDesc('tanggal')->paginate(20));
+       
+        $query->orderByDesc('cash_flows.tanggal');
+
+        $total = (clone $query)->count();
+
+        $data = $query
+            ->offset($offset)
+            ->limit($perPage)
+            ->get();
+
+        return response()->json([
+            'data' => $data,
+            'meta' => [
+                'current_page' => $page,
+                'per_page' => $perPage,
+                'total' => $total,
+                'last_page' => ceil($total / $perPage),
+                'from' => $offset + 1,
+                'to' => $offset + $data->count(),
+                'prev' => $page > 1 ? $page - 1 : null,
+                'next' => ($offset + $data->count()) < $total ? $page + 1 : null,
+            ]
+        ]);
     }
 
     /**
@@ -53,7 +83,7 @@ class CashFlowController extends Controller
             // 'tanggal'     => 'required|date',
             'tipe'        => 'required|in:in,out',
             'kas_id'      => 'required|exists:kas,id',
-            'kasir_id'    => 'nullable|exists:kasirs,id', // hanya jika tipe kas = kasir
+            'kasir_id'    => 'nullable|exists:users,id', // hanya jika tipe kas = kasir
             'jumlah'      => 'required|numeric|min:0',
             'keterangan'  => 'nullable|string|max:1000',
             'source_type' => 'nullable|string|max:100',
@@ -62,7 +92,7 @@ class CashFlowController extends Controller
 
         $validated['user_id'] = Auth::id(); // atau isi manual jika belum pakai auth
         $validated['tanggal'] = date('Y-m-d H:i:s');
-        $validated['kategori'] = $validated['tipe'] === 'in' ? 'Pemasukan' : 'Pengeluaran';
+        $validated['kategori'] = $validated['tipe'] ;
 
         $cashFlow = CashFlow::create($validated);
 

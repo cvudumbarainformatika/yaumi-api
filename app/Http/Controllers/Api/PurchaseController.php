@@ -12,6 +12,7 @@ use App\Models\Supplier;
 use App\Models\SupplierDebtHistory;
 use App\Models\ProductStockMutation;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -20,8 +21,9 @@ class PurchaseController extends Controller
     public function index(Request $request)
     {
         $query = Purchase::query()
-            ->select('purchases.*', 'suppliers.name as supplier_name', 'purchase_orders.status as status_order')
+            ->select('purchases.*', 'suppliers.name as supplier_name', 'purchase_orders.status as status_order', 'users.name as user_name')
             ->leftJoin('suppliers', 'purchases.supplier_id', '=', 'suppliers.id')
+            ->leftJoin('users', 'purchases.user_id', '=', 'users.id')
             ->leftJoin('purchase_orders', 'purchases.purchase_order_id', '=', 'purchase_orders.id')
             ->with(['supplier', 'purchaseOrder', 'items.product']);
         // if ($request->filled('supplier')) {
@@ -33,13 +35,9 @@ class PurchaseController extends Controller
             $search = $request->q;
             $query->where(function($q) use ($search) {
                 $q->where('purchases.unique_code', 'like', "%{$search}%")
-                ->orWhere('suppliers.name', 'like', "%{$search}%");
-                //   ->orWhereExists(function ($query) use ($search) {
-                //       $query->select(DB::raw(1))
-                //             ->from('suppliers')
-                //             ->whereColumn('suppliers.id', 'purchases.supplier_id')
-                //             ->where('suppliers.name', 'like', "%{$search}%");
-                //   });
+                ->orWhere('purchases.invoice_number', 'like', "%{$search}%")
+                ->orWhere('suppliers.name', 'like', "%{$search}%")
+                ->orWhere('users.name', 'like', "%{$search}%");
             });
         }
 
@@ -228,8 +226,11 @@ class PurchaseController extends Controller
                     $uniqueCode = 'PB-' . date('Ymd') . '-' . substr(uniqid(), -4);
 
                     // Buat data purchase
+
+                    $userId = Auth::id() ?? null;
                     $purchaseData = [
                         'supplier_id' => $supplier_id,
+                        'user_id' => $userId,
                         'date' => $validated['date'],
                         'due_date' => $dueDate,
                         'total' => $total,
@@ -332,59 +333,11 @@ class PurchaseController extends Controller
 
                         $product->decrement('stock', $item->qty);
 
-                        // // Ambil stok terakhir untuk dikirim ke job
-                        // $lastMutation = ProductStockMutation::getLastMutation($item->product_id);
-                        // if (!$lastMutation) {
-                        //     throw new \Exception("Tidak ada catatan mutasi stok untuk produk ID {$item->product_id}.");
-                        // }
-
-                        // $stockBefore = $lastMutation->stock_after;
-                        // $stockAfter = $stockBefore - $item->qty;
-
-                        // // Validasi stok tidak negatif
-                        // if ($stockAfter < 0) {
-                        //     throw new \Exception("Pembatalan akan menyebabkan stok negatif untuk produk ID {$item->product_id}.");
-                        // }
-
-                        // ProductStockMutation::createMutation([
-                        //     'product_id' => $item->product_id,
-                        //     'mutation_type' => 'out',
-                        //     'qty' => $item->qty,
-                        //     'stock_before' => $stockBefore,
-                        //     'stock_after' => $stockAfter,
-                        //     'source_type' => 'purchase_cancel',
-                        //     'source_id' => $purchase->id,
-                        //     'notes' => 'Pembatalan pembelian',
-                        // ]);
+                        
                     }
 
-                    // // Rollback hutang supplier dan catat histori
-                    // $supplier = Supplier::find($purchase->supplier_id);
-                    // if (!$supplier) {
-                    //     throw new \Exception("Supplier dengan ID {$purchase->supplier_id} tidak ditemukan.");
-                    // }
-
-                    // if ($supplier && $purchase->debt > 0) {
-                    //     $supplierDebt = $supplier->debt;
-                    //     if (!$supplierDebt) {
-                    //         throw new \Exception("Tidak ada catatan hutang untuk supplier ID {$purchase->supplier_id}.");
-                    //     }
-
-                    //     // Validasi saldo hutang cukup untuk dikurangi
-                    //     if ($supplierDebt->current_amount < $purchase->debt) {
-                    //         throw new \Exception("Saldo hutang supplier tidak cukup untuk dibatalkan.");
-                    //     }
-
-                    //     // PERBAIKAN: Gunakan createHistory untuk konsistensi
-                    //     SupplierDebtHistory::createHistory([
-                    //         'supplier_debt_id' => $supplierDebt->id,
-                    //         'mutation_type' => 'decrease',
-                    //         'amount' => $purchase->debt,
-                    //         'source_type' => 'purchase_cancel',
-                    //         'source_id' => $purchase->id,
-                    //         'notes' => 'Pembatalan pembelian',
-                    //     ]);
-                    // }
+                    
+                    
 
                     // Hapus purchase setelah semua rollback berhasil
                     $purchase->delete();
@@ -424,18 +377,23 @@ class PurchaseController extends Controller
         $query = Purchase::query()
             ->select(
                 'purchases.*',
-                'suppliers.name as supplier_name'
+                'suppliers.name as supplier_name',
+                'users.name as user_name'
             )
             ->join('suppliers', 'purchases.supplier_id', '=', 'suppliers.id')
+            ->join('users', 'purchases.user_id', '=', 'users.id')
             ->when($request->filled('q'), function ($q) use ($request) {
                 $q->where(function ($q) use ($request) {
                     $q->where('suppliers.name', 'like', "%{$request->q}%")
+                    ->orWhere('users.name', 'like', "%{$request->q}%")
                     ->orWhere('purchases.unique_code', 'like', "%{$request->q}%")
                     ->orWhere('purchases.invoice_number', 'like', "%{$request->q}%");
                 });
             })
             ->when($request->filled('start_date') && $request->filled('end_date'), function ($q) use ($request) {
-                $q->whereBetween('purchases.date', [$request->start_date, $request->end_date]);
+                $start = $request->start_date . ' 00:00:00';
+                $end = $request->end_date . ' 23:59:59';
+                $q->whereBetween('purchases.created_at', [$start, $end]);
             })
             ->with(['supplier'])
             ->orderByDesc('purchases.date');
@@ -479,8 +437,10 @@ class PurchaseController extends Controller
                   ->orWhere('purchases.invoice_number', 'like', "%{$request->q}%");
             });
         })
-        ->when($request->filled('start_date') && $request->filled('end_date'), function ($q) use ($request) {
-            $q->whereBetween('purchases.date', [$request->start_date, $request->end_date]);
+       ->when($request->filled('start_date') && $request->filled('end_date'), function ($q) use ($request) {
+            $start = $request->start_date . ' 00:00:00';
+            $end = $request->end_date . ' 23:59:59';
+            $q->whereBetween('purchases.created_at', [$start, $end]);
         });
 
         $totalBelanja = (clone $query)->sum('purchases.total');

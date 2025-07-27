@@ -14,8 +14,10 @@ class LaporanController extends Controller
 {
     public function labaRugi(Request $request)
     {
-        $start = $request->input('start_date');
-        $end = $request->input('end_date');
+        $start = $request->input('start_date') . ' 00:00:00';
+        $end = $request->input('end_date') . ' 23:59:59';
+
+       
 
         // Total Penjualan
         // $totalPenjualan = DB::table('sales')
@@ -88,4 +90,46 @@ class LaporanController extends Controller
         ]);
     }
 
+    public function cashFlows(Request $request)
+    {
+        $start = $request->input('start_date') . ' 00:00:00';
+        $end = $request->input('end_date') . ' 23:59:59';
+
+        $userId = $request->input('q');
+
+
+        $penjualan = DB::table('sales')
+          ->whereBetween('created_at', [$start, $end])
+          ->where('status', 'completed') // jika kamu filtering completed juga
+          ->where('sales.cashier_id', '=', "{$userId}") // jika kamu filtering completed juga
+          ->selectRaw("
+              SUM(CASE WHEN payment_method = 'cash' THEN total ELSE 0 END) as total_tunai
+          ")
+          ->first();
+
+        $keluar = DB::table('cash_flows')
+            ->leftJoin('users', 'cash_flows.kasir_id', '=', 'users.id')
+            ->whereBetween('tanggal', [$start, $end])
+            ->where('kasir_id', '=', "{$userId}")
+            ->where('tipe', '=', "out")
+            ->get();
+        $masuk = DB::table('cash_flows')
+            ->leftJoin('users', 'cash_flows.kasir_id', '=', 'users.id')
+            ->whereBetween('tanggal', [$start, $end])
+            ->where('kasir_id', '=', "{$userId}")
+            ->where('tipe', '=', "in")
+            ->get();
+
+
+        return response()->json([
+            'penjualan' => [
+                'penjualan_tunai' => $penjualan,
+            ],
+            'operasional' => [
+                'Keluar' => $keluar,
+                'Masuk' => $keluar,
+            ],
+        ]);
+    }
 }
+

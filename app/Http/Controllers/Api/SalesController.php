@@ -38,7 +38,11 @@ class SalesController extends Controller
         }
 
         if ($request->filled('start_date') && $request->filled('end_date')) {
-            $query->whereBetween('sales.created_at', [$request->start_date, $request->end_date]);
+            $query->when($request->filled('start_date') && $request->filled('end_date'), function ($q) use ($request) {
+                $start = $request->start_date . ' 00:00:00';
+                $end = $request->end_date . ' 23:59:59';
+                $q->whereBetween('sales.created_at', [$start, $end]);
+            });
         }
 
         // $purchases = $query->orderByDesc('purchases.id')->simplePaginate(15);
@@ -235,8 +239,16 @@ class SalesController extends Controller
                         ->orWhere('cashiers.name', 'like', "%{$search}%");
                 });
             })
+             ->when($request->filled('status'), function ($q) use ($request) {
+                $search = $request->status;
+                $q->where(function ($sub) use ($search) {
+                    $sub->where('sales.payment_method', '=', $search);
+                });
+            })
             ->when($request->filled('start_date') && $request->filled('end_date'), function ($q) use ($request) {
-                $q->whereBetween('sales.created_at', [$request->start_date, $request->end_date]);
+                $start = $request->start_date . ' 00:00:00';
+                $end = $request->end_date . ' 23:59:59';
+                $q->whereBetween('sales.created_at', [$start, $end]);
             })
             ->orderByDesc('sales.created_at');
 
@@ -275,9 +287,18 @@ class SalesController extends Controller
                     ->orWhere('cashiers.name', 'like', "%{$search}%");
             });
         })
-        ->when($request->filled('start_date') && $request->filled('end_date'), function ($q) use ($request) {
-            $q->whereBetween('sales.created_at', [$request->start_date, $request->end_date]);
-        });
+        ->when($request->filled('status'), function ($q) use ($request) {
+            $search = $request->status;
+            $q->where(function ($sub) use ($search) {
+                $sub->where('sales.payment_method', '=', $search);
+            });
+        })
+    
+       ->when($request->filled('start_date') && $request->filled('end_date'), function ($q) use ($request) {
+                $start = $request->start_date . ' 00:00:00';
+                $end = $request->end_date . ' 23:59:59';
+                $q->whereBetween('sales.created_at', [$start, $end]);
+            });
 
         $summary = $query->selectRaw('
             COUNT(sales.id) as jumlah_transaksi,
