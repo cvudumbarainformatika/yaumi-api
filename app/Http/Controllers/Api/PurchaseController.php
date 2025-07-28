@@ -370,8 +370,8 @@ class PurchaseController extends Controller
 
     public function report(Request $request)
     {
-       $page = (int) $request->input('page', 1);
-        $perPage = (int) $request->input('per_page', 15);
+        $page = (int) $request->input('page', 1);
+        $perPage = (int) $request->input('per_page', 20);
         $offset = ($page - 1) * $perPage;
 
         $query = Purchase::query()
@@ -380,8 +380,8 @@ class PurchaseController extends Controller
                 'suppliers.name as supplier_name',
                 'users.name as user_name'
             )
-            ->join('suppliers', 'purchases.supplier_id', '=', 'suppliers.id')
-            ->join('users', 'purchases.user_id', '=', 'users.id')
+            ->leftJoin('suppliers', 'purchases.supplier_id', '=', 'suppliers.id')
+            ->leftJoin('users', 'purchases.user_id', '=', 'users.id')
             ->when($request->filled('q'), function ($q) use ($request) {
                 $q->where(function ($q) use ($request) {
                     $q->where('suppliers.name', 'like', "%{$request->q}%")
@@ -411,6 +411,8 @@ class PurchaseController extends Controller
                     : ($item->paid > 0 ? 'sebagian' : 'belum lunas');
                 return $item;
             });
+
+        // $data = $query->simplePaginate($perPage);
 
         return response()->json([
             'data' => $data,
