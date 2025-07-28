@@ -395,8 +395,9 @@ class PurchaseController extends Controller
                 $end = $request->end_date . ' 23:59:59';
                 $q->whereBetween('purchases.created_at', [$start, $end]);
             })
-            ->with(['supplier'])
-            ->orderByDesc('purchases.date');
+            ->with(['supplier','items.product:id,name,barcode'])
+            // ->orderByDesc('purchases.date');
+            ->orderBy($request->sort_by ?? 'purchases.created_at', $request->sort_direction ? 'desc' : 'asc');
 
         $totalCount = (clone $query)->count();
 

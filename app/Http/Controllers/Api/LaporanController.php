@@ -62,14 +62,14 @@ class LaporanController extends Controller
             ->value('total_hpp');
 
         // 4. Total Biaya Operasional (dari cash_flows yang bukan transaksi penjualan/pembelian/hutang/piutang)
-        $biayaOperasional = DB::table('cash_flows')
-            ->where('tipe', 'out')
-            ->whereBetween('tanggal', [$start, $end])
-            ->sum('jumlah');
+        // $biayaOperasional = DB::table('cash_flows')
+        //     ->where('tipe', 'out')
+        //     ->whereBetween('tanggal', [$start, $end])
+        //     ->sum('jumlah');
         // Hitungan
         $pendapatanBersih = $totalPenjualan - $totalRetur;
         $labaKotor = $pendapatanBersih - $hpp;
-        $labaBersih = $labaKotor - $biayaOperasional;
+        $labaBersih = $labaKotor - 0;
 
         return response()->json([
             'pendapatan' => [
@@ -84,7 +84,7 @@ class LaporanController extends Controller
                 'laba_kotor' => $labaKotor,
             ],
             'operasional' => [
-                'biaya_operasional' => $biayaOperasional,
+                'biaya_operasional' => 0,
             ],
             'laba_bersih' => $labaBersih,
         ]);
@@ -92,44 +92,66 @@ class LaporanController extends Controller
 
     public function cashFlows(Request $request)
     {
-        $start = $request->input('start_date') . ' 00:00:00';
-        $end = $request->input('end_date') . ' 23:59:59';
+        $start = $request->input('start_date');
+        // $end = $request->input('end_date') . ' 23:59:59';
 
         $userId = $request->input('q');
 
 
         $penjualan = DB::table('sales')
-          ->whereBetween('created_at', [$start, $end])
+          ->whereDate('created_at', $start)
           ->where('status', 'completed') // jika kamu filtering completed juga
-          ->where('sales.cashier_id', '=', "{$userId}") // jika kamu filtering completed juga
+          ->when($userId, function ($query, $userId) {
+            return  $query->where('sales.cashier_id', '=', "{$userId}"); // jika kamu filtering completed juga
+          })
           ->selectRaw("
               SUM(CASE WHEN payment_method = 'cash' THEN total ELSE 0 END) as total_tunai
           ")
           ->first();
 
-        $keluar = DB::table('cash_flows')
-            ->leftJoin('users', 'cash_flows.kasir_id', '=', 'users.id')
-            ->whereBetween('tanggal', [$start, $end])
-            ->where('kasir_id', '=', "{$userId}")
-            ->where('tipe', '=', "out")
-            ->get();
-        $masuk = DB::table('cash_flows')
-            ->leftJoin('users', 'cash_flows.kasir_id', '=', 'users.id')
-            ->whereBetween('tanggal', [$start, $end])
-            ->where('kasir_id', '=', "{$userId}")
-            ->where('tipe', '=', "in")
-            ->get();
+        $keluar = self::getCashFlows('out', $start, null, $userId);
+        $masuk = self::getCashFlows('in', $start, null, $userId);
 
+        $penjualanTunai = (float) $penjualan->total_tunai;
+        // Hitung total akhir
+        $totalSemua = $penjualanTunai + $masuk['total'] - $keluar['total'];
 
         return response()->json([
             'penjualan' => [
-                'penjualan_tunai' => $penjualan,
+                'penjualan_tunai' => $penjualanTunai,
             ],
             'operasional' => [
-                'Keluar' => $keluar,
-                'Masuk' => $keluar,
+                'keluar' => [
+                    'total' => $keluar['total'],
+                    'items' => $keluar['items'],
+                ],
+                'masuk' => [
+                    'total' => $masuk['total'],
+                    'items' => $masuk['items'],
+                ],
             ],
+            'total_semua' => $totalSemua
         ]);
+    }
+
+    static function getCashFlows($tipe, $start, $end = null, $userId = null)
+    {
+        $query = DB::table('cash_flows')
+        ->select('cash_flows.*', 'kasir.name as kasir_name', 'user.name as user_name')
+        ->leftJoin('users as kasir', 'cash_flows.kasir_id', '=', 'kasir.id')
+        ->leftJoin('users as user', 'cash_flows.user_id', '=', 'user.id')
+        // ->whereBetween('cash_flows.tanggal', [$start, $end])
+        ->where('cash_flows.tanggal', $start)
+        ->when($userId, fn($q) => $q->where('cash_flows.kasir_id', $userId))
+        ->where('cash_flows.tipe', $tipe);
+
+        $items = $query->get();
+        $total = $items->sum(fn($item) => (float) $item->jumlah);
+
+        return [
+            'total' => $total,
+            'items' => $items
+        ];
     }
 }
 

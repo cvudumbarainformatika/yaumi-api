@@ -64,7 +64,7 @@ class PurchaseOrderController extends Controller
         
         // Buat cache key berdasarkan semua parameter request yang mempengaruhi hasil query
         $filterParams = $request->only(['q', 'status', 'supplier_id', 'date_from', 'date_to']);
-        $cacheKey = 'purchase_orders_count:' . md5(json_encode($filterParams));
+        // $cacheKey = 'purchase_orders_count:' . md5(json_encode($filterParams));
         
         // Ambil total dari cache atau hitung jika tidak ada
         // $totalCount = Cache::remember($cacheKey, now()->addMinutes(), function () use ($query) {
