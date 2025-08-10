@@ -7,7 +7,7 @@ Route::get('/', function () {
     return view('welcome');
 });
 Route::get('/autogen', function () {
-    echo 'Selamat Datang di Toko Online Yaumi Backend!';
+    echo 'Selamat Datang di Toko Online Yaumi Backend v2!';
 });
 
 Route::get('/delete-all-indexes', function () {
