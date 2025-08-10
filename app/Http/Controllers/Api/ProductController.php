@@ -47,15 +47,47 @@ class ProductController extends Controller
         // Filter berdasarkan customer_id
         if ($request->filled('status') && !empty($request->status)) {
 
+            // $query->when($request->status, function ($query) use ($request) {
+            //     return (match ($request->status) {
+            //         'in-stock' => $query->where(
+            //             DB::raw('COALESCE(lsp.stock, products.stock)'),
+            //              '>', 
+            //             DB::raw('products.minstock')),
+            //         'low-stock' => $query->whereBetween(
+            //             DB::raw('COALESCE(lsp.stock, products.stock)'), [1, DB::raw('products.minstock')]
+            //         ),
+            //         'out-of-stock' => $query->where(DB::raw('COALESCE(lsp.stock, products.stock)'), '<=', 0),
+            //         default => $query
+            //     });
+            // });
+
             $query->when($request->status, function ($query) use ($request) {
-                return match ($request->status) {
-                    'in-stock' => $query->where(DB::raw('COALESCE(lsp.stock, products.stock)'), '>', DB::raw('products.minstock')),
-                    'low-stock' => $query->whereBetween(
-                        DB::raw('COALESCE(lsp.stock, products.stock)'), [1, DB::raw('products.minstock')]
-                    ),
-                    'out-of-stock' => $query->where(DB::raw('COALESCE(lsp.stock, products.stock)'), '<=', 0),
-                    default => $query
-                };
+                switch ($request->status) {
+                    case 'in-stock':
+                        $query->where(
+                            DB::raw('COALESCE(lsp.stock, products.stock)'),
+                            '>',
+                            DB::raw('products.minstock')
+                        );
+                        break;
+
+                    case 'low-stock':
+                        $query->whereBetween(
+                            DB::raw('COALESCE(lsp.stock, products.stock)'),
+                            [1, DB::raw('products.minstock')]
+                        );
+                        break;
+
+                    case 'out-of-stock':
+                        $query->where(
+                            DB::raw('COALESCE(lsp.stock, products.stock)'),
+                            '<=',
+                            0
+                        );
+                        break;
+                }
+
+                return $query;
             });
         }
         
@@ -153,81 +185,43 @@ class ProductController extends Controller
 
     public function search(Request $request): JsonResponse
     {
-        $validated = $request->validate([
-            'q' => 'nullable|string',
-            'category_id' => 'nullable|exists:categories,id',
-            'satuan_id' => 'nullable|exists:satuans,id',
-            'status' => 'nullable|in:all,in-stock,low-stock,out-of-stock',  // Add this line
-            'per_page' => 'nullable|integer|min:1|max:100',
-            'sort_by' => 'nullable|in:name,hargajual,stock,created_at',
-            'sort_dir' => 'nullable|in:asc,desc',
-        ]);
+        // $page = (int) request('page', 1); // default halaman 1
+        // $perPage = (int) request('per_page', 10);
 
-        $perPage = $validated['per_page'] ?? 12;
-        $q = $validated['q'] ?? '';
+        $query = Product::query();
+        $query->withStockInfo();
+        $query->with(['category', 'satuan']);
 
-        $products = Product::search($q, function ($meilisearch, $query, $options) use ($validated) {
-            $options['filter'] = [];
+        $search = $request->q;
 
-            if (!empty($validated['category_id'])) {
-                $options['filter'][] = "category_id = {$validated['category_id']}";
-            }
+        if ($request->filled('q') && !empty($request->q)) {
+            $query->where(function ($q) use ($search) {
+                $q->where('products.barcode', 'like', "{$search}%")
+                ->orWhere('products.name', 'like', "{$search}%")
+                ->orWhere('products.barcode', 'like', "%{$search}%")
+                ->orWhere('products.name', 'like', "%{$search}%");
+            });
 
-            if (!empty($validated['satuan_id'])) {
-                $options['filter'][] = "satuan_id = {$validated['satuan_id']}";
-            }
+            // Urutkan prefix match di atas match biasa
+            $query->orderByRaw("
+                CASE
+                    WHEN products.barcode LIKE ? THEN 0
+                    WHEN products.name LIKE ? THEN 1
+                    ELSE 2
+                END
+            ", ["{$search}%", "{$search}%"]);
+        } else {
+            $query->orderBy('products.barcode', 'asc');
+        }
 
-            // Add stock status filter
-            // if (!empty($validated['status'])) {
-            //     switch ($validated['status']) {
-            //         case 'in-stock':
-            //             $options['filter'][] = "stock > 0";
-            //             break;
-            //         case 'low-stock':
-            //             $options['filter'][] = "is_low_stock = 'true'";
-            //             break;
-            //         case 'out-of-stock':
-            //             $options['filter'][] = "stock = 0";
-            //             break;
-            //     }
-            // }
+        $result = $query->limit(10)->get();
 
-            if (!empty($validated['sort_by'])) {
-                $direction = $validated['sort_dir'] ?? 'asc';
-                $options['sort'] = ["{$validated['sort_by']}:{$direction}"];
-            }
+        $data = [
+            'data' => $result,
+            
+        ];
 
-            $options['attributesToHighlight'] = ['name', 'barcode','category.name','category_name'];
-
-            return $meilisearch->search($query, $options);
-        })
-        ->query(function ($builder) {
-            $builder->with(['category', 'satuan'])
-            ->leftJoin('latest_stock_per_product as lsp', 'products.id', '=', 'lsp.product_id')
-            ->addSelect([
-            'products.*',
-            DB::raw('COALESCE(lsp.stock, products.stock) AS stock_akhir')]);
-        })
-        ->paginate($perPage);
-
-
-
-        return response()->json([
-            'data' => $products->items(),
-            'meta' => [
-                'current_page' => $products->currentPage(),
-                'per_page' => $products->perPage(),
-                'total' => $products->total(),
-                'last_page' => $products->lastPage(),
-            ],
-            'links' => [
-                'first' => $products->url(1),
-                'last' => $products->url($products->lastPage()),
-                'prev' => $products->previousPageUrl(), 
-                'next' => $products->nextPageUrl(),
-            ],
-            'filters' => array_filter($validated),
-        ]);
+        return response()->json($data);
     }
 
     public function mutations(Request $request, $id)

@@ -60,7 +60,7 @@ Route::prefix('v1')->group(function () {
 
 
         // Products Routes
-        Route::get('products/search', [ProductController::class, 'index'])->name('products.search');
+        Route::get('products/search', [ProductController::class, 'search'])->name('products.search');
         Route::get('products/mutations/{id}', [ProductController::class, 'mutations'])->name('products.mutations');
         Route::post('products/stock-opname', [ProductController::class, 'stockOpname'])->name('products.stockopname.mutations');
 
