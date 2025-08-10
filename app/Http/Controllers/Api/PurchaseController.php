@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\PenerimaanGudang;
 use App\Models\Purchase;
 use App\Models\PurchaseItem;
 use App\Models\PurchaseOrder;
@@ -11,6 +12,7 @@ use App\Models\Product;
 use App\Models\Supplier;
 use App\Models\SupplierDebtHistory;
 use App\Models\ProductStockMutation;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -159,6 +161,7 @@ class PurchaseController extends Controller
                 'items.*.purchase_order_item_id' => 'nullable|exists:purchase_order_items,id',
                 'items.*.product_id' => 'required|exists:products,id',
                 'items.*.qty' => 'required|integer|min:1',
+                'items.*.qty_gudang' => 'required|integer|min:0',
                 'items.*.price' => 'required|numeric|min:0',
                 'note' => 'nullable|string',
             ]);
@@ -281,6 +284,29 @@ class PurchaseController extends Controller
                         $po->updateStatus();
                     }
 
+
+                    // ini jika ada qty gudang di rincian
+                    $hasQtyGudang = collect($validated['items'])->pluck('qty_gudang')->filter(fn($q) => $q > 0)->isNotEmpty();
+                    if ($hasQtyGudang) {
+                        $penerimaanCode = 'PG-' . now()->format('Ymd') . '-' . $purchase->id;
+                        $penerimaan = PenerimaanGudang::create([
+                            'purchase_id' => $purchase->id,
+                            'user_id' => $userId,
+                            'received_at' => Carbon::now(),
+                            'notes' => $validated['note'] ?? null,
+                            'reference_no' => $penerimaanCode,
+                        ]);
+
+                        foreach ($validated['items'] as $item) {
+                            if ($item['qty_gudang'] > 0) {
+                                $penerimaan->items()->create([
+                                    'product_id' => $item['product_id'],
+                                    'qty' => $item['qty_gudang'],
+                                ]);
+                            }
+                        }
+                    }
+
                     return response()->json($purchase->load(['supplier', 'purchaseOrder', 'items.product']), 201);
                 } catch (\Exception $e) {
                     // Tangkap error dan throw kembali untuk memicu rollback
@@ -332,13 +358,7 @@ class PurchaseController extends Controller
                         }
 
                         $product->decrement('stock', $item->qty);
-
-                        
                     }
-
-                    
-                    
-
                     // Hapus purchase setelah semua rollback berhasil
                     $purchase->delete();
 

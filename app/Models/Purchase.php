@@ -9,20 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 class Purchase extends Model
 {
     use HasFactory, LogsActivity;
-    protected $fillable = [
-        'supplier_id',
-        'purchase_order_id',
-        'date',
-        'due_date',
-        'total',
-        'paid',
-        'debt',
-        'note',
-        'unique_code',
-        'payment_method',
-        'invoice_number',
-        'skip_stock_mutation',
-    ];
+    protected $guarded = ['id'];
 
     public function purchaseOrder()
     {
