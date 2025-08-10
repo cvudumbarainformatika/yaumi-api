@@ -213,7 +213,7 @@ class PurchaseController extends Controller
 
                         $itemData = [
                             'product_id' => $item['product_id'],
-                            'qty' => $item['qty'],
+                            'qty' => $item['qty'] +( $item['qty_gudang'] ?? 0),
                             'price' => $item['price'],
                             'subtotal' => $subtotal,
                         ];

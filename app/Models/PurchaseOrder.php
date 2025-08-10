@@ -65,7 +65,7 @@ class PurchaseOrder extends Model
         if ($allReceived) {
             $this->status = 'received';
         } elseif ($anyReceived) {
-            $this->status = 'partial';
+            $this->status = 'partial'; // ini aslinya partial
         }
         
         $this->save();
