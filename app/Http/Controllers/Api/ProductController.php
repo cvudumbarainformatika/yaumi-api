@@ -361,7 +361,7 @@ class ProductController extends Controller
     {
        $product_id = $request->id;
 
-        $catatan = 'Penyesuaian Stock';
+        $catatan = 'Penyesuaian Stock Gudang';
 
         DB::beginTransaction();
         try {
