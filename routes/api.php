@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\LaporanController;
 use App\Http\Controllers\Api\MenuController;
 use App\Http\Controllers\Api\PembayaranHutangController;
 use App\Http\Controllers\Api\PembayaranPiutangController;
+use App\Http\Controllers\Api\PriceHistoryController;
 use App\Http\Controllers\Api\PurchaseController;
 use App\Http\Controllers\Api\ReturnPembelianController;
 use App\Http\Controllers\Api\ReturnPenjualanController;
@@ -178,6 +179,9 @@ Route::prefix('v1')->group(function () {
             //stock-opname
             Route::get('/stock-opname', [StockOpnameController::class, 'index']);
             Route::get('/stock-opname-gudang', [StockOpnameController::class, 'gudang']);
+
+
+            Route::get('/perubahan-harga-beli', [PriceHistoryController::class, 'index']);
         });
 
 
