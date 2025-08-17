@@ -28,18 +28,9 @@ class PriceHistoryController extends Controller
             });
         }
 
-        // Filter berdasarkan customer_id
-        // if ($request->filled('status') && !empty($request->status)) {
-        //     if ($request->status !== 'semua') {
-        //         $query->where('sales.payment_method', '=', $request->status);
-        //     }
-        // }
+        
 
-        $query->where(function($q) use ($request) {
-            $q->whereNotNull('stock_opname.product_id')
-                ->whereNotNull('stock_opname.stock_sistem')
-                ->whereNotNull('stock_opname.stock_fisik');
-        });
+       
 
         if ($request->filled('start_date') && $request->filled('end_date')) {
             $query->whereBetween('stock_opname.created_at', [$request->start_date, $request->end_date]);
