@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\CompanyController;
 use App\Http\Controllers\Api\CustomerController;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\DistribusiGudangController;
 use App\Http\Controllers\Api\KasController;
 use App\Http\Controllers\Api\LaporanController;
 use App\Http\Controllers\Api\MenuController;
@@ -62,7 +63,9 @@ Route::prefix('v1')->group(function () {
         // Products Routes
         Route::get('products/search', [ProductController::class, 'search'])->name('products.search');
         Route::get('products/mutations/{id}', [ProductController::class, 'mutations'])->name('products.mutations');
+        Route::get('products/mutations/gudang/{id}', [ProductController::class, 'mutations_gudang'])->name('products.mutations.gudang');
         Route::post('products/stock-opname', [ProductController::class, 'stockOpname'])->name('products.stockopname.mutations');
+        Route::post('products/stock-opname/gudang', [ProductController::class, 'stockOpnameGudang'])->name('products.stockopname.mutations.gudang');
 
         Route::apiResource('products', ProductController::class)->names('products');
 
@@ -184,6 +187,19 @@ Route::prefix('v1')->group(function () {
             Route::post('/menu/permissions', [MenuController::class, 'updateBulkPermissions']);
 
         });
+        Route::prefix('gudangs')->group(function () {
+
+            Route::prefix('distribution')->controller(DistribusiGudangController::class)->group(function () {
+                Route::get('/', 'index');
+                Route::post('/', 'store');
+                Route::get('{id}', 'show');
+            });
+
+        });
+
+
+        
+
 
         Route::prefix('dashboard')->group(function () {
             // penjualan

@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\GudangStockMutation;
 use App\Models\Product;
 use App\Models\ProductStockMutation;
 use App\Models\StockOpname;
+use App\Models\StockOpnameGudang;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Pagination\Paginator;
@@ -21,15 +23,6 @@ class ProductController extends Controller
         $offset = ($page - 1) * $perPage;
 
         $query = Product::query();
-
-        // $query
-        //     ->leftJoin('latest_stock_per_product as lsp', 'products.id', '=', 'lsp.product_id')
-        //     ->leftJoin('satuans', 'products.satuan_id', '=', 'satuans.id')
-        //     ->leftJoin('categories', 'products.category_id', '=', 'categories.id')
-        //     ->addSelect([
-        //         'products.*','categories.name as category_name', 'satuans.name as satuan_name',
-        //         DB::raw('COALESCE(lsp.stock, products.stock) AS stock_akhir')
-        //     ]);
         $query->withStockInfo();
         $query->with(['category', 'satuan']);
 
@@ -47,48 +40,71 @@ class ProductController extends Controller
         // Filter berdasarkan customer_id
         if ($request->filled('status') && !empty($request->status)) {
 
-            // $query->when($request->status, function ($query) use ($request) {
-            //     return (match ($request->status) {
-            //         'in-stock' => $query->where(
-            //             DB::raw('COALESCE(lsp.stock, products.stock)'),
-            //              '>', 
-            //             DB::raw('products.minstock')),
-            //         'low-stock' => $query->whereBetween(
-            //             DB::raw('COALESCE(lsp.stock, products.stock)'), [1, DB::raw('products.minstock')]
-            //         ),
-            //         'out-of-stock' => $query->where(DB::raw('COALESCE(lsp.stock, products.stock)'), '<=', 0),
-            //         default => $query
-            //     });
-            // });
-
             $query->when($request->status, function ($query) use ($request) {
-                switch ($request->status) {
-                    case 'in-stock':
-                        $query->where(
-                            DB::raw('COALESCE(lsp.stock, products.stock)'),
-                            '>',
-                            DB::raw('products.minstock')
-                        );
-                        break;
+                if ($request->mode !== 'gudang') {
+                    switch ($request->status) {
+                        case 'in-stock':
+                            $query->where(
+                                DB::raw('COALESCE(lsp.stock, products.stock)'),
+                                '>',
+                                DB::raw('products.minstock')
+                            );
+                            break;
 
-                    case 'low-stock':
-                        $query->whereBetween(
-                            DB::raw('COALESCE(lsp.stock, products.stock)'),
-                            [1, DB::raw('products.minstock')]
-                        );
-                        break;
+                        case 'low-stock':
+                            $query->whereBetween(
+                                DB::raw('COALESCE(lsp.stock, products.stock)'),
+                                [1, DB::raw('products.minstock')]
+                            );
+                            break;
 
-                    case 'out-of-stock':
-                        $query->where(
-                            DB::raw('COALESCE(lsp.stock, products.stock)'),
-                            '<=',
-                            0
-                        );
-                        break;
+                        case 'out-of-stock':
+                            $query->where(
+                                DB::raw('COALESCE(lsp.stock, products.stock)'),
+                                '<=',
+                                0
+                            );
+                            break;
+                    }
+
+                    return $query;
+                } else {
+                    switch ($request->status) {
+                        case 'in-stock':
+                            $query->where(
+                                DB::raw('COALESCE(lgsp.stock, products.stock_gudang)'),
+                                '>',
+                                DB::raw('products.minstock')
+                            );
+                            break;
+
+                        case 'low-stock':
+                            $query->whereBetween(
+                                DB::raw('COALESCE(lgsp.stock, products.stock_gudang)'),
+                                [1, DB::raw('products.minstock')]
+                            );
+                            break;
+
+                        case 'out-of-stock':
+                            $query->where(
+                                DB::raw('COALESCE(lgsp.stock, products.stock_gudang)'),
+                                '<=',
+                                0
+                            );
+                            break;
+                    }
+
+                    return $query;
                 }
-
-                return $query;
             });
+        }
+
+        if ($request->filled('category_id') && !empty($request->category_id)) {
+            $query->where('products.category_id', $request->category_id);
+        }
+
+        if ($request->filled('satuan_id') && !empty($request->satuan_id)) {
+            $query->where('products.satuan_id', $request->satuan_id);
         }
         
         $totalCount = (clone $query)->count();
@@ -189,7 +205,7 @@ class ProductController extends Controller
         // $perPage = (int) request('per_page', 10);
 
         $query = Product::query();
-        $query->withStockInfo();
+        $query->withoutStockInfo();
         $query->with(['category', 'satuan']);
 
         $search = $request->q;
@@ -266,6 +282,51 @@ class ProductController extends Controller
 
         return response()->json($data);
     }
+    public function mutations_gudang(Request $request, $id)
+    {
+       $page = (int) request('page', 1); // default halaman 1
+        $perPage = (int) request('per_page', 10);
+        $offset = ($page - 1) * $perPage;
+
+        $query = GudangStockMutation::query();
+
+        $query->where('product_id', $id);
+
+        $query->select(
+            'gudang_stock_mutations.*',
+            'products.name as product_name',
+            'satuans.name as satuan_name',
+            'categories.name as category_name',
+            )
+            ->leftJoin('products', 'gudang_stock_mutations.product_id', '=', 'products.id')
+            ->leftJoin('satuans', 'products.satuan_id', '=', 'satuans.id')
+            ->leftJoin('categories', 'products.category_id', '=', 'categories.id');
+
+        if ($request->filled('start_date') && $request->filled('end_date')) {
+            $query->whereBetween('gudang_stock_mutations.created_at', [$request->start_date, $request->end_date]);
+        }
+
+        // $productStockMutations = $query->orderByDesc('gudang_stock_mutations.id');
+        $totalCount = (clone $query)->count();
+        $result = $query->simplePaginate($perPage, ['*'], 'page', $page);
+        $data = [
+            'data' => $result->items(),
+            'meta' => [
+                'first' => $result->url(1),
+                'last' => url()->current() . '?page=' . ceil($totalCount / $perPage),
+                'prev' => $result->previousPageUrl(),
+                'next' => $result->nextPageUrl(),
+                'current_page' => $result->currentPage(),
+                'per_page' => (int)$perPage,
+                'total' => (int)$totalCount,
+                'last_page' => ceil($totalCount / $perPage),
+                'from' => (($result->currentPage() - 1) * $perPage) + 1,
+                'to' => min($result->currentPage() * $perPage, $totalCount),
+            ],
+        ];
+
+        return response()->json($data);
+    }
 
 
     public function stockOpname(Request $request)
@@ -283,6 +344,34 @@ class ProductController extends Controller
                     'user_id' => Auth::id(),
                     'product_id' => $product_id,
                     'stock_sistem'=> $request->stock_akhir,
+                    'stock_fisik'=> $request->stock_fisik,
+                    'selisih'=> $request->selisih,
+                    'catatan'=> $catatan
+                ]);
+            }
+            DB::commit();
+            return response()->json(['message' => 'Stock opname berhasil disimpan'], 200);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            return response()->json(['message' => 'Gagal menyimpan pembayaran hutang', 'error' => $e->getMessage()], 500);
+        }
+
+    }
+    public function stockOpnameGudang(Request $request)
+    {
+       $product_id = $request->id;
+
+        $catatan = 'Penyesuaian Stock';
+
+        DB::beginTransaction();
+        try {
+
+            $selisih = $request->selisih;
+            if ($selisih !== 0) {
+                StockOpnameGudang::create([
+                    'user_id' => Auth::id(),
+                    'product_id' => $product_id,
+                    'stock_sistem'=> $request->stock_akhir_gudang,
                     'stock_fisik'=> $request->stock_fisik,
                     'selisih'=> $request->selisih,
                     'catatan'=> $catatan

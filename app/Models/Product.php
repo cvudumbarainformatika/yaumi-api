@@ -85,6 +85,7 @@ class Product extends Model
     {
         return $query
             ->leftJoin('latest_stock_per_product as lsp', 'products.id', '=', 'lsp.product_id')
+            ->leftJoin('latest_gudang_stock_per_product as lgsp', 'products.id', '=', 'lgsp.product_id')
             ->leftJoin('satuans', 'products.satuan_id', '=', 'satuans.id')
             ->leftJoin('categories', 'products.category_id', '=', 'categories.id')
             ->addSelect([
@@ -92,7 +93,27 @@ class Product extends Model
                 'categories.name as category_name',
                 'satuans.name as satuan_name',
                 DB::raw('COALESCE(lsp.stock, products.stock) AS stock_akhir'),
-                'lsp.tanggal'
+                'lsp.tanggal',
+
+                DB::raw('COALESCE(lgsp.stock, products.stock_gudang) AS stock_akhir_gudang'),
+                'lgsp.tanggal as tanggal_gudang',
+            ]);
+    }
+    public function scopeWithoutStockInfo($query)
+    {
+        return $query
+            // ->leftJoin('latest_stock_per_product as lsp', 'products.id', '=', 'lsp.product_id')
+            // ->leftJoin('latest_gudang_stock_per_product as lgsp', 'products.id', '=', 'lgsp.product_id')
+            ->leftJoin('satuans', 'products.satuan_id', '=', 'satuans.id')
+            ->leftJoin('categories', 'products.category_id', '=', 'categories.id')
+            ->addSelect([
+                'products.*',
+                'categories.name as category_name',
+                'satuans.name as satuan_name',
+                // DB::raw('COALESCE(lsp.stock, products.stock) AS stock_akhir'),
+                // 'lsp.tanggal',
+
+                // DB::raw('COALESCE(lgsp.stock, products.stock_gudang) AS stock_akhir_gudang'),
             ]);
     }
 

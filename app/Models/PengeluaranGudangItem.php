@@ -14,4 +14,9 @@ class PengeluaranGudangItem extends Model
     {
         return $this->belongsTo(PengeluaranGudang::class);
     }
+
+    public function product()
+    {
+        return $this->belongsTo(Product::class);
+    }
 }

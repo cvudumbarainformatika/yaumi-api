@@ -13,7 +13,7 @@ class PengeluaranGudang extends Model
 
     protected $guarded = ['id'];
 
-    public function pengeluaran_gudang_items()
+    public function items()
     {
         return $this->hasMany(PengeluaranGudangItem::class);
     }
