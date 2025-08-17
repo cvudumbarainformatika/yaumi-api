@@ -177,6 +177,7 @@ Route::prefix('v1')->group(function () {
 
             //stock-opname
             Route::get('/stock-opname', [StockOpnameController::class, 'index']);
+            Route::get('/stock-opname-gudang', [StockOpnameController::class, 'gudang']);
         });
 
 

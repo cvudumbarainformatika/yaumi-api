@@ -381,7 +381,7 @@ class ProductController extends Controller
             return response()->json(['message' => 'Stock opname berhasil disimpan'], 200);
         } catch (\Throwable $e) {
             DB::rollBack();
-            return response()->json(['message' => 'Gagal menyimpan pembayaran hutang', 'error' => $e->getMessage()], 500);
+            return response()->json(['message' => 'Gagal menyimpan stock opname gudang', 'error' => $e->getMessage()], 500);
         }
 
     }
