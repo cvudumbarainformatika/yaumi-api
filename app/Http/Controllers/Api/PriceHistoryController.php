@@ -33,9 +33,9 @@ class PriceHistoryController extends Controller
        
 
         if ($request->filled('start_date') && $request->filled('end_date')) {
-            $query->whereBetween('stock_opname.created_at', [$request->start_date, $request->end_date]);
+            $query->whereBetween('product_price_histories.created_at', [$request->start_date, $request->end_date]);
         }
-        $query->orderByDesc('stock_opname.created_at');
+        $query->orderByDesc('product_price_histories.created_at');
         // $purchases = $query->orderByDesc('purchases.id')->simplePaginate(15);
         $perPage = $request->input('per_page', 10);
         $totalCount = (clone $query)->count();
