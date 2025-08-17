@@ -89,6 +89,41 @@ class DashboardController extends Controller
             ]]
           ]);
     }
+    public function cartPembelian()
+    {
+      $year = Carbon::now()->year;
+
+      $sales = DB::table('purchases')
+          ->selectRaw('MONTH(created_at) as month, SUM(total) as total')
+          ->whereYear('created_at', $year)
+          ->groupByRaw('MONTH(created_at)')
+          ->orderByRaw('MONTH(created_at)')
+          ->pluck('total', 'month')
+          ->toArray();
+
+
+      $labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+      $data = [];
+      for ($i = 1; $i <= 12; $i++) {
+          $data[] = isset($sales[$i]) ? (float)$sales[$i] : 0;
+      }
+
+      // Jika hanya ingin sampai bulan saat ini
+      $currentMonth = now()->month;
+      $labels = array_slice($labels, 0, $currentMonth);
+      $data = array_slice($data, 0, $currentMonth);
+
+      // Return sebagai format ChartJS
+      return response()->json([
+            'labels' => $labels,
+            'datasets' => [[
+                'label' => 'Pembelian',
+                'data' => $data,
+                
+            ]]
+          ]);
+    }
 
 
     public function pembelian()
@@ -138,6 +173,29 @@ class DashboardController extends Controller
             'growth_transaksi' => $growthTransaksi,
             'growth_transaksi_status' => $statusTransaksi,
         ];
+    }
+
+
+    public function topProductSales()
+    {
+       $startDate = Carbon::now()->startOfMonth();
+        $endDate = Carbon::now()->endOfMonth();
+
+        $topProducts = DB::table('sales_items')
+            ->join('products', 'sales_items.product_id', '=', 'products.id')
+            ->select(
+                'products.id',
+                'products.name',
+                DB::raw('SUM(sales_items.qty) as total_qty'),
+                DB::raw('SUM(sales_items.subtotal) as total_sales')
+            )
+            ->whereBetween('sales_items.created_at', [$startDate, $endDate])
+            ->groupBy('products.id', 'products.name')
+            ->orderByDesc('total_qty')
+            ->limit(10)
+            ->get();
+
+        return response()->json($topProducts);
     }
 
     public function activity()

@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\DistribusiGudangController;
 use App\Http\Controllers\Api\KasController;
 use App\Http\Controllers\Api\LaporanController;
 use App\Http\Controllers\Api\MenuController;
+use App\Http\Controllers\Api\MetricsController;
 use App\Http\Controllers\Api\PembayaranHutangController;
 use App\Http\Controllers\Api\PembayaranPiutangController;
 use App\Http\Controllers\Api\PriceHistoryController;
@@ -211,8 +212,15 @@ Route::prefix('v1')->group(function () {
             
             Route::get('/penjualan', [DashboardController::class, 'penjualan']);
             Route::get('/cart-penjualan', [DashboardController::class, 'cartPenjualan']);
+            Route::get('/top-product-sales', [DashboardController::class, 'topProductSales']);
+
+
             Route::get('/pembelian', [DashboardController::class, 'pembelian']);
+            Route::get('/cart-pembelian', [DashboardController::class, 'cartPembelian']);
             Route::get('/activity', [DashboardController::class, 'activity']);
+
+            Route::get('/metrics/sales-daily', [MetricsController::class, 'salesDaily']);
+            Route::get('/metrics/purchases-weekly', [MetricsController::class, 'purchasesWeekly']);
             
 
 
