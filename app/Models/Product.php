@@ -6,11 +6,20 @@ use App\Traits\LogsActivity;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Laravel\Scout\Searchable;
 
 class Product extends Model
 {
-    use Searchable, LogsActivity;
+    use Searchable, LogsActivity, SoftDeletes;
+
+    protected static function booted()
+    {
+        static::deleting(function ($product) {
+            $product->barcode = $product->barcode . '-deleted-' . time();
+            $product->saveQuietly();
+        });
+    }
 
     // protected $fillable = [
     //     'name',
