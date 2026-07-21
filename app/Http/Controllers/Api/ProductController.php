@@ -149,8 +149,9 @@ class ProductController extends Controller
         return response()->json($product, 201);
     }
 
-    public function show(Product $product): JsonResponse
+    public function show($id): JsonResponse
     {
+        $product = Product::findOrFail($id);
         return response()->json($product->load('category'));
     }
 
@@ -191,8 +192,9 @@ class ProductController extends Controller
         return response()->json($product);
     }
 
-    public function destroy(Product $product): JsonResponse
+    public function destroy($id): JsonResponse
     {
+        $product = Product::findOrFail($id);
         $product->delete();
         return response()->json(null, 204);
     }
