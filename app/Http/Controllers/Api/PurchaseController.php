@@ -189,8 +189,20 @@ class PurchaseController extends Controller
 
                     // Jika ada purchase_order_id, ambil data PO
                     if (!empty($validated['purchase_order_id'])) {
-                        $po = PurchaseOrder::findOrFail($validated['purchase_order_id']);
-                        $supplier_id = $po->supplier_id;
+                        // Pastikan ada setidaknya satu item yang berasal dari PO ini
+                        $hasPoItem = collect($validated['items'])->pluck('purchase_order_item_id')->filter()->isNotEmpty();
+
+                        if ($hasPoItem) {
+                            $po = PurchaseOrder::findOrFail($validated['purchase_order_id']);
+                            if (in_array($po->status, ['received', 'cancelled'])) {
+                                throw new \Exception("Purchase Order {$po->unique_code} sudah berstatus {$po->status} dan tidak dapat diproses lagi.");
+                            }
+                            $supplier_id = $po->supplier_id;
+                        } else {
+                            // Jika tidak ada item dari PO sama sekali, abaikan purchase_order_id dan gunakan supplier_id dari request
+                            $validated['purchase_order_id'] = null;
+                            $supplier_id = $validated['supplier_id'];
+                        }
                     } else {
                         // Jika tidak ada PO, gunakan supplier_id dari request
                         $supplier_id = $validated['supplier_id'];
